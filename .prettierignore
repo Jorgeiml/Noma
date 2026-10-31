@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+docs
+pnpm-lock.yaml
+.pnpm-store
+apps/api/src/generated/prisma

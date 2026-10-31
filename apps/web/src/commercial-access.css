@@ -1,0 +1,169 @@
+.noma-access {
+  max-width: 1240px;
+  margin: auto;
+  padding: 58px 5%;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 65px;
+  align-items: start;
+  min-height: 72svh;
+}
+.noma-access-intro h1 {
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  margin: 25px 0;
+}
+.noma-access-intro > p:not(.noma-kicker) {
+  font-size: 0.9rem;
+  color: var(--n-muted);
+  max-width: 360px;
+}
+.noma-access-intro .nomi {
+  width: 220px;
+  height: auto;
+  margin: 20px auto 0;
+}
+.noma-access-panel {
+  padding: 32px;
+  background: #fffef9;
+  border: 1px solid var(--n-line);
+  border-radius: 12px;
+  min-width: 0;
+}
+.noma-access-panel h2 {
+  font-size: 1.8rem;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+.noma-access-panel h3 {
+  font-size: 1.05rem;
+  margin: 26px 0 15px;
+}
+.noma-access-panel p {
+  font-size: 0.83rem;
+  color: var(--n-muted);
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+.noma-access-panel form {
+  display: grid;
+  gap: 12px;
+  margin: 25px 0;
+}
+.noma-access-panel label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.noma-access-panel input,
+.noma-access-panel select {
+  width: 100%;
+  min-height: 48px;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 12px;
+  border: 1px solid #acb5a0;
+  border-radius: 5px;
+  background: #fffefb;
+  color: var(--n-ink);
+}
+.noma-access-panel select:focus-visible {
+  outline: 3px solid #a94421;
+  outline-offset: 4px;
+}
+.noma-access-panel .noma-button {
+  max-width: 100%;
+  margin-top: 8px;
+}
+.noma-access-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 25px;
+  font-size: 0.78rem;
+}
+.noma-access-links a {
+  padding: 12px 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.noma-text-action {
+  display: block;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--n-ink);
+  padding: 10px 0;
+  margin-top: 10px;
+  font-size: 0.8rem !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.noma-access-panel .noma-access-error {
+  padding: 15px;
+  border-left: 3px solid #ab4938;
+  background: #f8e9df;
+  color: #77392e;
+}
+.noma-access-notice {
+  padding: 16px;
+  background: #edf0e4;
+  border-radius: 7px;
+  margin-bottom: 20px;
+}
+.noma-access-notice h2 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+.noma-access-notice p {
+  margin: 0;
+}
+.noma-local-entry {
+  border-top: 1px solid var(--n-line);
+  margin-top: 25px;
+  padding-top: 10px;
+}
+.noma-local-entry a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.noma-membership-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.noma-membership-list li {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--n-line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+  justify-content: space-between;
+}
+.noma-membership-list strong {
+  font-size: 0.9rem;
+}
+.noma-membership-list small {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--n-muted);
+}
+@media (max-width: 760px) {
+  .noma-access {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 25px;
+    padding: 30px 5%;
+  }
+  .noma-access-intro .nomi {
+    display: none;
+  }
+  .noma-access-intro h1 {
+    font-size: 2.5rem;
+  }
+  .noma-access-panel {
+    padding: 24px 20px;
+  }
+}

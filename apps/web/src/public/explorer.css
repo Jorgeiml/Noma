@@ -1,0 +1,843 @@
+.noma-partners {
+  border-block: 1px solid var(--n-line);
+  padding: 25px 4.5% 18px;
+  display: grid;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 2fr);
+  gap: 14px 40px;
+}
+.noma-partners h2 {
+  font-size: 1rem;
+  letter-spacing: -0.025em;
+  line-height: 1.4;
+}
+.noma-partners p {
+  font-size: 0.76rem;
+  color: var(--n-muted);
+  margin-top: 6px;
+}
+.noma-partners ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.noma-partners li {
+  font-size: 2rem;
+  color: #50584c;
+  line-height: 1.1;
+  text-align: center;
+}
+.noma-partners li span {
+  display: block;
+  font:
+    500 0.5rem/1.6 "Segoe UI",
+    sans-serif;
+  letter-spacing: 0.16em;
+  margin-top: 5px;
+}
+.noma-logo-ritmo {
+  font-weight: 800;
+  letter-spacing: -0.09em;
+  font-style: italic;
+}
+.noma-logo-cima {
+  font-weight: 350;
+  letter-spacing: 0.17em;
+}
+.noma-logo-marea {
+  font-family: Georgia, serif;
+  font-style: italic;
+}
+.noma-logo-eje {
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.noma-partners small {
+  grid-column: 1 / -1;
+  font-size: 0.65rem;
+  color: var(--n-muted);
+  text-align: right;
+}
+.noma-explorer {
+  max-width: 1600px;
+  margin: auto;
+  scroll-margin-top: 12px;
+}
+.noma-explorer-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--n-paper);
+  padding: 24px 4.5% 18px;
+  border-bottom: 1px solid var(--n-line);
+}
+.noma-explorer-bar > p {
+  margin-bottom: 12px;
+}
+.noma-explorer-bar nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.noma-explorer-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 19px;
+  min-height: 46px;
+  border-radius: 5px;
+  font-size: 0.83rem;
+  border: 1px solid transparent;
+  transition:
+    background 160ms,
+    color 160ms;
+}
+.noma-explorer-bar a > span {
+  font-size: 0.59rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.noma-explorer-bar a:hover {
+  border-color: #bbc0b1;
+}
+.noma-explorer-bar a[aria-current] {
+  background: var(--n-ink);
+  color: white;
+}
+.noma-chapter {
+  scroll-margin-top: 135px;
+  animation: noma-chapter-in 180ms var(--n-ease) both;
+  min-height: 510px;
+}
+.noma-chapter > section {
+  padding: 40px 4.5%;
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+.noma-chapter h2 {
+  font-size: clamp(2rem, 3.3vw, 3rem);
+}
+.noma-chapter .noma-section-heading h2 {
+  margin-top: 15px;
+}
+.noma-film-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 40px;
+  align-items: center;
+}
+.noma-film-intro h2 {
+  margin: 16px 0 20px;
+}
+.noma-film-intro > p:not(.noma-kicker) {
+  font-size: 0.88rem;
+  color: var(--n-muted);
+  max-width: 340px;
+}
+.noma-film-intro > a {
+  margin-top: 20px;
+}
+.noma-film {
+  background: #e8eddf;
+  border: 1px solid #cbd2bf;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  flex-direction: column;
+}
+.noma-film-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 20px 22px 0;
+  font-size: 0.57rem;
+  letter-spacing: 0.08em;
+}
+.noma-film-label > span:first-child {
+  font-size: 0.75rem;
+  letter-spacing: -0.025em;
+}
+.noma-film-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 15px;
+  align-items: center;
+  padding: 15px 28px 25px 16px;
+  flex: 1;
+}
+.noma-film-scene .nomi {
+  width: 100%;
+  max-height: 270px;
+  height: auto;
+}
+.noma-film-caption > span {
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
+}
+.noma-film-caption h3 {
+  font-size: clamp(1.25rem, 2.1vw, 2rem);
+  line-height: 1.15;
+  margin: 15px 0;
+}
+.noma-film-caption p {
+  font-size: 0.8rem;
+  color: #515d45;
+}
+.noma-film-caption button {
+  margin-top: 18px;
+  padding: 12px 17px;
+}
+.noma-film-controls {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 15px;
+}
+.noma-film-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: transparent;
+  color: var(--n-ink);
+  border: 1px solid #aab49d;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 0.66rem;
+}
+.noma-film-controls button[aria-pressed="true"] {
+  background: #fffdf5;
+  border-color: #6b785b;
+}
+.noma-film-controls button > span {
+  font-variant-numeric: tabular-nums;
+}
+.noma-film video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #242820;
+}
+.noma-film-disclosure {
+  font-size: 0.66rem;
+  color: var(--n-muted);
+  margin-top: 10px !important;
+}
+.noma-chapter .noma-industry-layout {
+  margin-top: 28px;
+}
+.noma-chapter .noma-industry-context {
+  min-height: 270px;
+  padding: 27px;
+}
+.noma-chapter .noma-industry-context h3 {
+  font-size: 2rem;
+}
+.noma-chapter .noma-industry-context > p {
+  margin-top: 18px;
+}
+.noma-chapter .noma-industry-disclaimer {
+  margin-top: 22px;
+}
+.noma-sector-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  margin-top: 24px;
+  padding: 24px;
+  background: #f2e8dd;
+  border-radius: 10px;
+}
+.noma-sector-contact h3 {
+  font-size: 1.2rem;
+  line-height: 1.4;
+}
+.noma-sector-contact p {
+  font-size: 0.8rem;
+  color: #665646;
+  margin-top: 7px;
+}
+.noma-sector-contact a {
+  flex-shrink: 0;
+  gap: 12px;
+  max-width: 100%;
+}
+.noma-whatsapp-icon {
+  flex-shrink: 0;
+}
+.noma-trust {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 7%;
+}
+.noma-trust h2 {
+  margin: 18px 0 25px;
+}
+.noma-trust > div:first-child > p:last-of-type {
+  font-size: 0.9rem;
+  max-width: 380px;
+  color: var(--n-muted);
+}
+.noma-trust-facts article {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--n-line);
+}
+.noma-trust-facts article:first-child {
+  padding-top: 0;
+}
+.noma-trust-facts article > span {
+  font-size: 0.61rem;
+  font-weight: 650;
+  color: #805039;
+}
+.noma-trust-facts h3 {
+  font-size: 1.2rem;
+  margin: 12px 0;
+}
+.noma-trust-facts p {
+  font-size: 0.83rem;
+  color: var(--n-muted);
+}
+.noma-chapter .noma-faq {
+  gap: 6%;
+}
+.noma-chapter .noma-faq h2 {
+  margin: 18px 0;
+}
+.noma-chapter .noma-faq > div > p:last-child {
+  font-size: 0.85rem;
+  color: var(--n-muted);
+}
+.noma-pricing-heading {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  justify-content: space-between;
+}
+.noma-pricing-heading h2 {
+  margin: 12px 0 15px;
+}
+.noma-pricing-heading > div:first-child > p:last-child {
+  font-size: 0.8rem;
+  color: var(--n-muted);
+}
+.noma-billing {
+  display: flex;
+  background: #e9ecdf;
+  border: 1px solid #ccd1bf;
+  padding: 4px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.noma-billing button {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 10px 14px;
+  color: #505848;
+  font-size: 0.8rem;
+}
+.noma-billing button[aria-pressed="true"] {
+  background: #fffef9;
+  color: var(--n-ink);
+  box-shadow: 0 1px 3px #24282016;
+}
+.noma-billing button span {
+  display: block;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: #6f4e32;
+}
+.noma-pricing-status {
+  font-size: 0.72rem;
+  color: #6f4b32;
+  padding: 10px 14px;
+  border-left: 2px solid #b56537;
+  background: #f4eadd;
+  margin-top: 22px !important;
+}
+.noma-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+.noma-plan-picker {
+  display: none;
+}
+.noma-plan {
+  border: 1px solid #cdd3bf;
+  border-radius: 10px;
+  padding: 25px;
+  background: #fffef9;
+}
+.noma-plan[data-featured="true"] {
+  background: #eaf0df;
+  border-color: #8f9f77;
+}
+.noma-plan-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.noma-plan-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 145px;
+  gap: 5px;
+  align-items: center;
+  min-height: 145px;
+}
+.noma-plan-intro > .noma-plan-scene {
+  width: 145px;
+  height: 163px;
+  overflow: visible;
+}
+.noma-session-info {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px !important;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #535e48;
+  vertical-align: middle;
+}
+.noma-session-info > span,
+.noma-info-symbol {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #849175;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.noma-session-info:hover {
+  background: #dce4cf;
+}
+.noma-session-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 10px 4px;
+  margin-top: 16px;
+  color: var(--n-ink);
+  font-size: 0.8rem !important;
+}
+.noma-session-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.noma-session-toggle > span:last-child {
+  font-size: 1.2rem;
+  margin-left: 8px;
+}
+.noma-session-guide[hidden] {
+  display: none;
+}
+.noma-plan-name h3 {
+  font-size: 1.35rem;
+}
+.noma-plan-name > span {
+  font-size: 0.57rem;
+  padding: 5px 8px;
+  background: #d4dfbf;
+  color: #3e5030;
+  border-radius: 4px;
+}
+.noma-plan-line {
+  font-size: 0.75rem;
+  color: var(--n-muted);
+  margin-top: 12px !important;
+}
+.noma-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 20px 0 8px !important;
+}
+.noma-plan-price strong {
+  font-size: clamp(2.8rem, 4vw, 3.7rem);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 1.1;
+}
+.noma-plan-price > span {
+  font-size: 0.73rem;
+  color: #535e48;
+}
+.noma-plan-billing {
+  font-size: 0.66rem;
+  color: var(--n-muted);
+  min-height: 38px;
+}
+.noma-plan ul {
+  list-style: none;
+  padding: 16px 0 0;
+  margin: 14px 0 0;
+  border-top: 1px solid #d5dacb;
+  display: grid;
+  gap: 10px;
+}
+.noma-plan li {
+  font-size: 0.8rem;
+}
+.noma-plan li > strong {
+  font-weight: 650;
+}
+.noma-plan-sessions {
+  margin-top: 4px;
+}
+.noma-session-guide {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: 25px;
+  margin-top: 10px;
+  padding: 20px 24px;
+  background: #f2e8dd;
+  border-radius: 10px;
+}
+.noma-session-guide .nomi {
+  width: 100px;
+  height: auto;
+}
+.noma-session-guide h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+.noma-session-guide p {
+  font-size: 0.79rem;
+  color: #665646;
+}
+.noma-session-guide p + p {
+  margin-top: 8px;
+}
+.noma-session-guide strong {
+  font-weight: 600;
+}
+.noma-price-clarity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin: 24px 0;
+}
+.noma-price-clarity p {
+  font-size: 0.75rem;
+  color: var(--n-muted);
+}
+.noma-price-clarity strong {
+  display: block;
+  color: var(--n-ink);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.noma-price-details > details {
+  border-top: 1px solid var(--n-line);
+  padding: 12px 0;
+}
+.noma-price-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.84rem;
+  font-weight: 550;
+}
+.noma-price-details summary::-webkit-details-marker {
+  display: none;
+}
+.noma-price-details summary > span {
+  font-size: 1.4rem;
+  font-weight: 400;
+}
+.noma-price-details details[open] summary > span {
+  transform: rotate(45deg);
+}
+.noma-price-details details > p {
+  font-size: 0.77rem;
+  color: var(--n-muted);
+  margin: 12px 0;
+  max-width: 900px;
+}
+.noma-comparison-wrap {
+  overflow-x: auto;
+  margin: 20px 0;
+}
+.noma-comparison-wrap table {
+  width: 100%;
+  min-width: 570px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.76rem;
+}
+.noma-comparison-wrap caption {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.69rem;
+  color: var(--n-muted);
+}
+.noma-comparison-wrap :is(th, td) {
+  border-bottom: 1px solid var(--n-line);
+  padding: 14px 12px;
+  line-height: 1.5;
+}
+.noma-comparison-wrap th[scope="row"] {
+  font-weight: 500;
+  width: 43%;
+}
+.noma-comparison-wrap thead {
+  background: #e8edde;
+}
+.noma-enterprise {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  border-top: 1px solid var(--n-line);
+  padding-top: 20px;
+}
+.noma-enterprise > p {
+  font-size: 0.77rem;
+  max-width: 550px;
+  color: var(--n-muted);
+}
+.noma-enterprise strong {
+  display: block;
+  color: var(--n-ink);
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+.noma-enterprise a {
+  flex-shrink: 0;
+}
+@keyframes noma-chapter-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 1000px) {
+  .noma-plan-intro {
+    grid-template-columns: minmax(0, 1fr) 85px;
+    min-height: 130px;
+  }
+  .noma-plan-intro > .noma-plan-scene {
+    width: 85px;
+    height: 110px;
+  }
+  .noma-partners {
+    grid-template-columns: 1fr;
+  }
+  .noma-partners > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    align-items: baseline;
+  }
+  .noma-partners p {
+    margin: 0;
+  }
+  .noma-partners small {
+    text-align: left;
+  }
+  .noma-pricing-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .noma-film-section {
+    gap: 25px;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr);
+  }
+  .noma-film {
+    aspect-ratio: auto;
+    min-height: 340px;
+  }
+  .noma-film-scene {
+    padding: 10px 20px 20px 12px;
+    gap: 10px;
+  }
+  .noma-film-controls button {
+    font-size: 0;
+  }
+  .noma-film-controls button > span {
+    font-size: 0.7rem;
+  }
+  .noma-plan {
+    padding: 20px 16px;
+  }
+  .noma-plan-name {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 53px;
+  }
+}
+@media (max-width: 650px) {
+  .noma-plan-intro {
+    grid-template-columns: minmax(0, 1fr) 125px;
+    min-height: 130px;
+  }
+  .noma-plan-intro > .noma-plan-scene {
+    width: 125px;
+    height: 140px;
+  }
+  .noma-chapter {
+    scroll-margin-top: 175px;
+  }
+  .noma-partners {
+    padding-block: 22px;
+    gap: 20px;
+  }
+  .noma-partners ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 25px;
+  }
+  .noma-partners li {
+    font-size: 1.7rem;
+  }
+  .noma-explorer-bar {
+    padding-block: 22px 16px;
+  }
+  .noma-explorer-bar nav {
+    gap: 5px;
+  }
+  .noma-explorer-bar a {
+    font-size: 0.76rem;
+    padding: 10px 11px;
+    gap: 8px;
+  }
+  .noma-chapter > section {
+    padding: 28px 5%;
+  }
+  .noma-film-section,
+  .noma-trust {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .noma-film-intro > p:not(.noma-kicker) {
+    max-width: none;
+  }
+  .noma-film-intro h2 {
+    margin: 14px 0;
+  }
+  .noma-film-intro > a {
+    margin-top: 8px;
+  }
+  .noma-film-label {
+    padding: 16px 15px 0;
+    font-size: 0.5rem;
+  }
+  .noma-film-caption h3 {
+    font-size: 1.35rem;
+  }
+  .noma-film-caption p {
+    font-size: 0.75rem;
+  }
+  .noma-film-caption button {
+    font-size: 0.72rem;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .noma-film-scene {
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, 1fr);
+    padding-right: 15px;
+  }
+  .noma-trust {
+    gap: 25px;
+  }
+  .noma-plan-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .noma-plan-picker {
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+  }
+  .noma-plan-picker button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #b8c2a9;
+    background: transparent;
+    color: var(--n-ink);
+    border-radius: 5px;
+    font-size: 0.8rem;
+  }
+  .noma-plan-picker button[aria-pressed="true"] {
+    background: var(--n-ink);
+    border-color: var(--n-ink);
+    color: white;
+  }
+  .noma-plan:not([data-mobile-selected="true"]) {
+    display: none;
+  }
+  .noma-plan {
+    padding: 22px;
+  }
+  .noma-plan-name {
+    flex-direction: row;
+    min-height: 0;
+    align-items: center;
+  }
+  .noma-plan ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+  .noma-plan-sessions {
+    grid-column: 1 / -1;
+  }
+  .noma-plan-price strong {
+    font-size: 3rem;
+  }
+  .noma-plan-billing {
+    min-height: 0;
+  }
+  .noma-session-guide {
+    padding: 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .noma-session-guide .nomi {
+    width: 75px;
+    margin: -8px auto 0;
+  }
+  .noma-price-clarity {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 17px;
+  }
+  .noma-enterprise {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce), (update: slow) {
+  .noma-chapter {
+    animation: none;
+  }
+  .noma-explorer-bar a {
+    transition: none;
+  }
+}

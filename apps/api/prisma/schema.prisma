@@ -1,0 +1,459 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Tabla técnica temporal. Eliminar mediante migración cuando deje de ser necesaria.
+model PersistenceProbe {
+  id        String   @id @default(uuid()) @db.Uuid
+  message   String   @db.VarChar(200)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+enum EstablishmentStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum BusinessVertical {
+  BEAUTY
+  DENTAL
+  FITNESS
+  AUTOMOTIVE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum MembershipRole {
+  OWNER
+}
+
+enum LocalCredentialKind {
+  BOOTSTRAP
+  SESSION
+}
+
+// Tenant comercial, no una sucursal física. Frontera definitiva pendiente de OQ-PRO-02.
+model Establishment {
+  id             String              @id @default(uuid()) @db.Uuid
+  commercialName String              @db.VarChar(120)
+  vertical       BusinessVertical?
+  verticalConfiguredAt DateTime? @db.Timestamptz(3)
+  verticalConfigurationReason String? @db.VarChar(500)
+  status         EstablishmentStatus @default(ACTIVE)
+  timeZone       String              @default("America/Guayaquil") @db.VarChar(64)
+  currency       String              @default("USD") @db.Char(3)
+  businessPhone  String?             @db.VarChar(32)
+  websiteUrl     String?             @db.VarChar(250)
+  logoDataUrl    String?             @db.Text
+  version        Int                 @default(0)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @db.Timestamptz(3)
+  memberships    Membership[]
+  services       ServiceOffering[]
+  branches       Branch[]
+  professionals  Professional[]
+  commercialSubscription CommercialSubscription?
+  @@index([createdAt, id])
+}
+
+model InternalUser {
+  id          String       @id @default(uuid()) @db.Uuid
+  displayName String       @db.VarChar(80)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  memberships Membership[]
+  externalIdentities ExternalIdentity[]
+  commercialApplication CommercialApplication?
+  platformAccess PlatformAccess?
+  controlAudit PlatformAudit[]
+  @@index([createdAt, id])
+}
+
+model Membership {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @db.Uuid
+  establishmentId String            @db.Uuid
+  status          MembershipStatus  @default(ACTIVE)
+  role            MembershipRole
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  user            InternalUser      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  establishment   Establishment     @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  credentials     LocalCredential[]
+  commercialSessions CommercialSession[]
+  manualActivation ManualActivation?
+
+  @@unique([userId, establishmentId])
+  @@index([establishmentId])
+}
+
+// Credenciales solo de desarrollo. El rol de esta primera membresía es propietario.
+model LocalCredential {
+  id           String              @id @default(uuid()) @db.Uuid
+  digest       String              @unique @db.Char(64)
+  kind         LocalCredentialKind
+  membershipId String              @db.Uuid
+  expiresAt    DateTime            @db.Timestamptz(3)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+  membership   Membership          @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([membershipId])
+}
+
+enum CommercialPlan {
+  START
+  GROW
+  SCALE
+  ENTERPRISE
+}
+
+enum CommercialApplicationState {
+  REGISTRATION_STARTED
+  IDENTITY_VERIFIED
+  PLAN_SELECTED
+  ACTIVATION_PENDING
+}
+
+enum CommercialSubscriptionState {
+  ACTIVATION_PENDING
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum CommercialEvidenceSource {
+  LOCAL_SYNTHETIC
+  VERIFIED_EXTERNAL
+}
+
+// No automatic linking by email. The provider's stable (issuer, subject) is the key.
+model ExternalIdentity {
+  id String @id @default(uuid()) @db.Uuid
+  issuer String @db.VarChar(500)
+  subject String @db.VarChar(255)
+  userId String @db.Uuid
+  email String @db.VarChar(320)
+  verifiedAt DateTime? @db.Timestamptz(3)
+  synthetic Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user InternalUser @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  sessions CommercialSession[]
+  @@unique([issuer, subject])
+  @@index([userId])
+}
+
+// This is an identity session, not a tenant grant. Selection is checked on every request.
+model CommercialSession {
+  id String @id @default(uuid()) @db.Uuid
+  digest String @unique @db.Char(64)
+  identityId String @db.Uuid
+  membershipId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  identity ExternalIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  @@index([identityId])
+}
+
+model OidcAttempt {
+  stateDigest String @id @db.Char(64)
+  browserDigest String @db.Char(64)
+  encryptedPayload String @db.Text
+  expiresAt DateTime @db.Timestamptz(3)
+  @@index([expiresAt])
+}
+
+model IdentityRateLimit {
+  key String @id @db.Char(64)
+  hits Int
+  expiresAt DateTime @db.Timestamptz(3)
+  @@index([expiresAt])
+}
+
+// One initial application per account. Registration never creates an establishment.
+model CommercialApplication {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  state CommercialApplicationState @default(REGISTRATION_STARTED)
+  selectedPlan CommercialPlan?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  user InternalUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subscription CommercialSubscription?
+  platformReview ApplicationReview?
+  manualActivation ManualActivation?
+  @@index([createdAt, id])
+  @@index([state, createdAt])
+}
+
+model CommercialSubscription {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @unique @db.Uuid
+  establishmentId String @unique @db.Uuid
+  plan CommercialPlan
+  state CommercialSubscriptionState @default(ACTIVATION_PENDING)
+  evidenceSource CommercialEvidenceSource
+  evidenceRef String? @db.VarChar(250)
+  activatedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  @@index([createdAt, id])
+}
+
+enum ServicePriceMode {
+  FIXED
+  FROM
+  RANGE
+  ASSESSMENT_REQUIRED
+}
+
+model ServiceOffering {
+  id                    String                @id @default(uuid()) @db.Uuid
+  establishmentId       String                @db.Uuid
+  name                  String                @db.VarChar(120)
+  category              String?               @db.VarChar(80)
+  description           String                @db.VarChar(2000)
+  durationMinutes       Int
+  priceMode             ServicePriceMode
+  priceMin              Decimal?              @db.Decimal(18, 4)
+  priceMax              Decimal?              @db.Decimal(18, 4)
+  currency              String                @db.Char(3)
+  hasPriorAssessment    Boolean               @default(false)
+  assessmentDescription String?               @db.VarChar(1000)
+  active                Boolean               @default(true)
+  version               Int                   @default(0)
+  createdAt             DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(3)
+  establishment         Establishment         @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  professionals         ProfessionalService[]
+  resourceSets          ServiceResourceSet[]
+
+  @@unique([establishmentId, id])
+  @@index([establishmentId, active, category])
+}
+
+model Branch {
+  id              String               @id @default(uuid()) @db.Uuid
+  establishmentId String               @db.Uuid
+  name            String               @db.VarChar(120)
+  address         String?              @db.VarChar(250)
+  timeZone        String               @db.VarChar(64)
+  active          Boolean              @default(true)
+  isDefault       Boolean              @default(false)
+  version         Int                  @default(0)
+  createdAt       DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime             @updatedAt @db.Timestamptz(3)
+  establishment   Establishment        @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  professionals   ProfessionalBranch[]
+  resources       PhysicalResource[]
+  schedules       WorkSchedule[]
+  resourceSets    ServiceResourceSet[]
+
+  @@unique([establishmentId, id])
+}
+
+model Professional {
+  id              String                @id @default(uuid()) @db.Uuid
+  establishmentId String                @db.Uuid
+  displayName     String                @db.VarChar(120)
+  specialty       String?               @db.VarChar(500)
+  active          Boolean               @default(true)
+  version         Int                   @default(0)
+  createdAt       DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @db.Timestamptz(3)
+  establishment   Establishment         @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  branches        ProfessionalBranch[]
+  services        ProfessionalService[]
+  schedules       WorkSchedule[]
+
+  @@unique([establishmentId, id])
+}
+
+model ProfessionalBranch {
+  establishmentId String       @db.Uuid
+  professionalId  String       @db.Uuid
+  branchId        String       @db.Uuid
+  active          Boolean      @default(true)
+  professional    Professional @relation(fields: [establishmentId, professionalId], references: [establishmentId, id], onDelete: Restrict)
+  branch          Branch       @relation(fields: [establishmentId, branchId], references: [establishmentId, id], onDelete: Restrict)
+
+  @@id([establishmentId, professionalId, branchId])
+}
+
+model ProfessionalService {
+  establishmentId String          @db.Uuid
+  professionalId  String          @db.Uuid
+  serviceId       String          @db.Uuid
+  active          Boolean         @default(true)
+  professional    Professional    @relation(fields: [establishmentId, professionalId], references: [establishmentId, id], onDelete: Restrict)
+  service         ServiceOffering @relation(fields: [establishmentId, serviceId], references: [establishmentId, id], onDelete: Restrict)
+
+  @@id([establishmentId, professionalId, serviceId])
+}
+
+model PhysicalResource {
+  id              String                       @id @default(uuid()) @db.Uuid
+  establishmentId String                       @db.Uuid
+  branchId        String                       @db.Uuid
+  name            String                       @db.VarChar(120)
+  typeDescription String?                      @db.VarChar(500)
+  capacity        Int
+  active          Boolean                      @default(true)
+  version         Int                          @default(0)
+  createdAt       DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime                     @updatedAt @db.Timestamptz(3)
+  branch          Branch                       @relation(fields: [establishmentId, branchId], references: [establishmentId, id], onDelete: Restrict)
+  requirements    ServiceResourceRequirement[]
+
+  @@unique([establishmentId, branchId, id])
+}
+
+// Omitted weekdays are unconfigured; closed days have an explicit closed flag.
+// HH:mm values are local wall times in timeZone, never UTC appointment instants.
+model WorkSchedule {
+  id              String              @id @default(uuid()) @db.Uuid
+  establishmentId String              @db.Uuid
+  branchId        String              @db.Uuid
+  professionalId  String?             @db.Uuid
+  timeZone        String              @db.VarChar(64)
+  week            Json                @db.JsonB
+  version         Int                 @default(0)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
+  branch          Branch              @relation(fields: [establishmentId, branchId], references: [establishmentId, id], onDelete: Restrict)
+  professional    Professional?       @relation(fields: [establishmentId, professionalId], references: [establishmentId, id], onDelete: Restrict)
+  exceptions      ScheduleException[]
+
+  @@unique([establishmentId, id])
+  @@unique([establishmentId, branchId, professionalId])
+}
+
+enum ScheduleExceptionKind {
+  ABSENCE
+  CLOSURE
+  MODIFIED
+}
+
+model ScheduleException {
+  id              String                @id @default(uuid()) @db.Uuid
+  establishmentId String                @db.Uuid
+  scheduleId      String                @db.Uuid
+  date            DateTime              @db.Date
+  kind            ScheduleExceptionKind
+  intervals       Json                  @db.JsonB
+  note            String?               @db.VarChar(1000)
+  active          Boolean               @default(true)
+  version         Int                   @default(0)
+  createdAt       DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @db.Timestamptz(3)
+  schedule        WorkSchedule          @relation(fields: [establishmentId, scheduleId], references: [establishmentId, id], onDelete: Restrict)
+
+  @@unique([scheduleId, date])
+}
+
+model ServiceResourceSet {
+  establishmentId String                       @db.Uuid
+  branchId        String                       @db.Uuid
+  serviceId       String                       @db.Uuid
+  version         Int                          @default(0)
+  createdAt       DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime                     @updatedAt @db.Timestamptz(3)
+  branch          Branch                       @relation(fields: [establishmentId, branchId], references: [establishmentId, id], onDelete: Restrict)
+  service         ServiceOffering              @relation(fields: [establishmentId, serviceId], references: [establishmentId, id], onDelete: Restrict)
+  resources       ServiceResourceRequirement[]
+
+  @@id([establishmentId, branchId, serviceId])
+}
+
+model ServiceResourceRequirement {
+  establishmentId String             @db.Uuid
+  branchId        String             @db.Uuid
+  serviceId       String             @db.Uuid
+  resourceId      String             @db.Uuid
+  units           Int
+  active          Boolean            @default(true)
+  set             ServiceResourceSet @relation(fields: [establishmentId, branchId, serviceId], references: [establishmentId, branchId, serviceId], onDelete: Restrict)
+  resource        PhysicalResource   @relation(fields: [establishmentId, branchId, resourceId], references: [establishmentId, branchId, id], onDelete: Restrict)
+
+  @@id([establishmentId, branchId, serviceId, resourceId])
+}
+
+
+enum PlatformRole {
+  PLATFORM_OWNER
+  PLATFORM_ADMIN
+  BILLING_MANAGER
+  SUPPORT_AGENT
+}
+enum ApplicationDecision {
+  APPROVED
+  REJECTED
+}
+enum ManualActivationState {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+model PlatformAccess {
+  userId String @id @db.Uuid
+  role PlatformRole
+  version Int @default(0)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  user InternalUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+model ApplicationReview {
+  applicationId String @id @db.Uuid
+  decision ApplicationDecision
+  version Int @default(1)
+  decidedAt DateTime @default(now()) @db.Timestamptz(3)
+  actorUserId String @db.Uuid
+  reason String @db.VarChar(500)
+  application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  @@index([decision, decidedAt])
+}
+// An authorization for a limited pilot, never proof of payment or a paid subscription.
+model ManualActivation {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @unique @db.Uuid
+  membershipId String? @unique @db.Uuid
+  plan CommercialPlan
+  state ManualActivationState @default(ACTIVE)
+  expiresAt DateTime @db.Timestamptz(3)
+  actorUserId String @db.Uuid
+  reason String @db.VarChar(500)
+  version Int @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([state, expiresAt])
+}
+model PlatformAudit {
+  id String @id @default(uuid()) @db.Uuid
+  actorUserId String @db.Uuid
+  requestId String @db.Uuid
+  action String @db.VarChar(80)
+  resourceType String @db.VarChar(32)
+  resourceId String? @db.Uuid
+  reason String @db.VarChar(500)
+  outcome String @db.VarChar(16)
+  inputHash String? @db.Char(64)
+  changes Json @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  actor InternalUser @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@unique([actorUserId, requestId])
+  @@index([createdAt, id])
+  @@index([resourceType, resourceId, createdAt])
+}
