@@ -146,13 +146,44 @@ it("reenvía solo para la identidad autenticada y pide validación fresca al ver
     ),
   );
 });
-it("separa guardar preferencia de solicitar activación y no crea un negocio", async () => {
+it("presenta planes sin simular pago y separa la participación opcional en el piloto", async () => {
   render(<CommercialAccess page="activation" />);
-  await screen.findByRole("button", { name: "Guardar preferencia" });
+  await screen.findByRole("button", { name: "Guardar plan de interés" });
+  expect(
+    screen.getByText(/No hay compra, prueba comercial ni activación/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Grow seleccionado" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByText("100")).toBeInTheDocument();
+  expect(screen.getByText("350")).toBeInTheDocument();
+  expect(screen.getByText("900")).toBeInTheDocument();
+  expect(
+    screen.getByText("Una conversación, no cada mensaje."),
+  ).not.toBeVisible();
+  fireEvent.click(
+    screen.getByRole("button", { name: /Información para Start/ }),
+  );
+  expect(screen.getByText("Una conversación, no cada mensaje.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /Anual/ }));
+  expect(screen.getByText("$290")).toBeInTheDocument();
+  expect(screen.getByText("$590")).toBeInTheDocument();
+  expect(screen.getByText("$990")).toBeInTheDocument();
+  expect(commercialApi.selectPlan).not.toHaveBeenCalled();
   vi.mocked(commercialApi.account).mockResolvedValue(account("PLAN_SELECTED"));
-  fireEvent.click(screen.getByRole("button", { name: "Guardar preferencia" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Guardar plan de interés" }),
+  );
+  await screen.findByText(/Plan de interés guardado/);
+  expect(commercialApi.requestActivation).not.toHaveBeenCalled();
+  const pilotSection = screen
+    .getByText("Acceso anticipado de prueba")
+    .closest("details")!;
+  expect(pilotSection.open).toBe(false);
+  fireEvent.click(screen.getByText("Acceso anticipado de prueba"));
+  pilotSection.open = true;
   const activation = await screen.findByRole("button", {
-    name: "Registrar solicitud de activación",
+    name: "Quiero participar en el piloto",
   });
   expect(commercialApi.selectPlan).toHaveBeenCalledWith("GROW");
   expect(commercialApi.requestActivation).not.toHaveBeenCalled();
@@ -161,13 +192,45 @@ it("separa guardar preferencia de solicitar activación y no crea un negocio", a
   );
   fireEvent.click(activation);
   expect(
-    await screen.findByText(
-      /Solicitud registrada. La activación sigue pendiente/,
-    ),
+    await screen.findByText(/Interés en el piloto registrado/),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Entrar" }),
   ).not.toBeInTheDocument();
+});
+it("una aprobación existente no simula suscripción ni exige otra aprobación al cliente", async () => {
+  vi.mocked(commercialApi.account).mockResolvedValue({
+    ...account("ACTIVATION_PENDING"),
+    application: {
+      ...account("ACTIVATION_PENDING").application!,
+      review: "APPROVED",
+    },
+  });
+  render(<CommercialAccess page="activation" />);
+  await screen.findByText(/No hay compra, prueba comercial ni activación/);
+  expect(screen.getByText(/Tu próximo gran paso/)).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /pagar|aprobar|activar/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: /Preparar mi espacio/ }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Seleccionar Start" }));
+  expect(commercialApi.selectPlan).not.toHaveBeenCalled();
+  expect(commercialApi.requestActivation).not.toHaveBeenCalled();
+});
+it("guarda el plan elegido explícitamente sin conceder acceso", async () => {
+  render(<CommercialAccess page="activation" />);
+  await screen.findByRole("button", { name: "Guardar plan de interés" });
+  fireEvent.click(screen.getByRole("button", { name: "Seleccionar Start" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Guardar plan de interés" }),
+  );
+  await waitFor(() =>
+    expect(commercialApi.selectPlan).toHaveBeenCalledWith("START"),
+  );
+  expect(commercialApi.requestActivation).not.toHaveBeenCalled();
+  expect(commercialApi.selectMembership).not.toHaveBeenCalled();
 });
 it("exige selección explícita de membresía y bloquea las suspendidas", async () => {
   vi.mocked(commercialApi.account).mockResolvedValue({
@@ -198,6 +261,29 @@ it("exige selección explícita de membresía y bloquea las suspendidas", async 
   );
   expect(replacePage).toHaveBeenCalledWith("/app/establecimiento");
 });
+it("una cortesía suspendida muestra su estado sin pedir otro plan ni permitir onboarding", async () => {
+  vi.mocked(commercialApi.account).mockResolvedValue({
+    ...account(),
+    manualActivation: {
+      kind: "MANUAL_PILOT",
+      mode: "COURTESY",
+      plan: "GROW",
+      state: "SUSPENDED",
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      accessAuthorized: false,
+      onboardingAuthorized: false,
+    },
+  });
+  render(<CommercialAccess page="activation" />);
+  await screen.findByRole("heading", { name: "Revisemos tu acceso." });
+  expect(screen.getByRole("status")).toHaveTextContent("suspendido");
+  expect(
+    screen.queryByRole("link", { name: /Configurar mi negocio/ }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Guardar plan de interés" }),
+  ).not.toBeInTheDocument();
+});
 it("expone sesión vencida sin mostrar datos del negocio", async () => {
   vi.mocked(commercialApi.account).mockRejectedValue(
     new ApiError(401, "Sesión vencida"),
@@ -223,5 +309,33 @@ it("oculta el formulario local cuando el servidor no autoriza ese entorno", asyn
   expect(await screen.findByText("Acceso no disponible.")).toBeInTheDocument();
   expect(
     screen.queryByLabelText("Código local de desarrollo"),
+  ).not.toBeInTheDocument();
+});
+
+it("prioriza la configuración cuando el acceso gratuito está vigente y aún no hay negocio", async () => {
+  vi.mocked(commercialApi.account).mockResolvedValue({
+    ...account(),
+    manualActivation: {
+      kind: "MANUAL_PILOT",
+      mode: "TEST",
+      plan: "GROW",
+      state: "ACTIVE",
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      accessAuthorized: true,
+      onboardingAuthorized: true,
+    },
+  });
+  render(<CommercialAccess page="activation" />);
+  expect(
+    await screen.findByRole("heading", { name: "Configura tu negocio" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /Configurar mi negocio/ }),
+  ).toHaveAttribute("href", "/onboarding");
+  expect(
+    screen.getByText("Detalles de mi cuenta").closest("details"),
+  ).not.toHaveAttribute("open");
+  expect(
+    screen.queryByRole("button", { name: "Guardar plan de interés" }),
   ).not.toBeInTheDocument();
 });

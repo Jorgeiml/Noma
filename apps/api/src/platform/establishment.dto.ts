@@ -3,6 +3,7 @@ import {
   Injectable,
   type PipeTransform,
 } from "@nestjs/common";
+import { businessFields } from "../onboarding/onboarding.dto";
 
 export class EstablishmentUpdateDto {
   commercialName!: string;
@@ -11,6 +12,12 @@ export class EstablishmentUpdateDto {
   businessPhone!: string | null;
   websiteUrl!: string | null;
   version!: number;
+  countryCode?: string | null;
+  city?: string | null;
+  address?: string | null;
+  businessEmail?: string | null;
+  description?: string | null;
+  beautySubtype?: string | null;
 }
 
 export function validateEstablishment(value: unknown): EstablishmentUpdateDto {
@@ -27,6 +34,12 @@ export function validateEstablishment(value: unknown): EstablishmentUpdateDto {
     "businessPhone",
     "websiteUrl",
     "version",
+    "countryCode",
+    "city",
+    "address",
+    "businessEmail",
+    "description",
+    "beautySubtype",
   ];
   if (Object.keys(input).some((key) => !fields.includes(key)))
     return fail("El formulario contiene campos no editables");
@@ -87,6 +100,43 @@ export function validateEstablishment(value: unknown): EstablishmentUpdateDto {
       );
     }
   }
+  const extras: Partial<EstablishmentUpdateDto> = {};
+  if (
+    [
+      "countryCode",
+      "city",
+      "address",
+      "businessEmail",
+      "description",
+      "beautySubtype",
+    ].some((key) => key in input)
+  ) {
+    const detail = businessFields(
+      Object.fromEntries(
+        [
+          "commercialName",
+          "timeZone",
+          "businessPhone",
+          "countryCode",
+          "city",
+          "address",
+          "businessEmail",
+          "description",
+          "beautySubtype",
+        ].map((key) => [key, input[key]]),
+      ),
+      false,
+    );
+    for (const key of [
+      "countryCode",
+      "city",
+      "address",
+      "businessEmail",
+      "description",
+      "beautySubtype",
+    ] as const)
+      if (key in input) extras[key] = detail[key];
+  }
   return {
     commercialName: input.commercialName.trim(),
     timeZone: input.timeZone,
@@ -94,6 +144,7 @@ export function validateEstablishment(value: unknown): EstablishmentUpdateDto {
     businessPhone,
     websiteUrl,
     version: input.version as number,
+    ...extras,
   };
 }
 

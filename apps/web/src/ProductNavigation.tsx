@@ -1,7 +1,14 @@
 import { useEffect } from "react";
-export type ProductArea = "establishment" | "services" | "operations";
+export type ProductArea =
+  "establishment" | "services" | "operations" | "agenda";
 const areas: { id: ProductArea; label: string; hint: string; path: string }[] =
   [
+    {
+      id: "agenda",
+      label: "Agenda",
+      hint: "Tu día, organizado",
+      path: "M4 5h16v16H4zM8 3v4M16 3v4M4 10h16M8 14h2M14 14h2M8 18h2",
+    },
     {
       id: "establishment",
       label: "Negocio",

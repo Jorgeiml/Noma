@@ -7,6 +7,7 @@ import { Prisma } from "../generated/prisma/client";
 import { PrismaService } from "../persistence/prisma.service";
 import type { ControlPageQuery } from "./control.dto";
 import { idOf } from "./control.dto";
+import { applicationEmails } from "./application-identity";
 const slice = (q: ControlPageQuery) => ({
   skip: (q.page - 1) * q.size,
   take: q.size,
@@ -23,10 +24,13 @@ const prefix = (text: string) =>
 export const effectiveManualState = (value: {
   state: string;
   expiresAt: Date;
+  startsAt?: Date;
 }) =>
   value.state === "ACTIVE" && value.expiresAt <= new Date()
     ? "EXPIRED"
-    : value.state;
+    : value.state === "ACTIVE" && value.startsAt && value.startsAt > new Date()
+      ? "SCHEDULED"
+      : value.state;
 function filter<T extends string>(
   value: string | undefined,
   values: readonly T[],
@@ -44,7 +48,7 @@ export class ControlQueries {
     return (
       await this.prisma.client.$queryRaw<
         { id: string }[]
-      >`SELECT "id" FROM "InternalUser" WHERE lower("displayName") LIKE ${prefix(q)} OR "id"::text=${q}`
+      >`SELECT u."id" FROM "InternalUser" u WHERE lower(u."displayName") LIKE ${prefix(q)} OR u."id"::text=${q} OR EXISTS (SELECT 1 FROM "ExternalIdentity" e WHERE e."userId"=u."id" AND e."verifiedAt" IS NOT NULL AND lower(e."email") LIKE ${prefix(q)})`
     ).map((row) => row.id);
   }
   private async businessesMatching(q: string) {
@@ -145,7 +149,7 @@ export class ControlQueries {
             select: {
               id: true,
               displayName: true,
-              externalIdentities: { select: { verifiedAt: true } },
+              externalIdentities: { select: { email: true, verifiedAt: true } },
             },
           },
           manualActivation: {
@@ -153,6 +157,14 @@ export class ControlQueries {
               id: true,
               state: true,
               expiresAt: true,
+              startsAt: true,
+              mode: true,
+              authorizationBasis: true,
+              branchLimit: true,
+              professionalLimit: true,
+              userLimit: true,
+              whatsappLimit: true,
+              aiSessionLimit: true,
               plan: true,
               membershipId: true,
               version: true,
@@ -168,6 +180,7 @@ export class ControlQueries {
         user: {
           id: user.id,
           name: user.displayName,
+          emails: applicationEmails(user.externalIdentities),
           verified: user.externalIdentities.some(
             (identity) => identity.verifiedAt !== null,
           ),
@@ -190,6 +203,15 @@ export class ControlQueries {
         selectedPlan: true,
         createdAt: true,
         platformReview: true,
+        onboarding: {
+          select: {
+            id: true,
+            step: true,
+            createdAt: true,
+            updatedAt: true,
+            completedAt: true,
+          },
+        },
         manualActivation: true,
         subscription: {
           select: {
@@ -205,7 +227,7 @@ export class ControlQueries {
             id: true,
             displayName: true,
             externalIdentities: {
-              select: { verifiedAt: true, synthetic: true },
+              select: { email: true, verifiedAt: true, synthetic: true },
             },
             memberships: {
               select: {
@@ -224,7 +246,15 @@ export class ControlQueries {
     if (!item) throw new NotFoundException("Solicitud no disponible.");
     const history = historyAllowed
       ? await this.prisma.client.platformAudit.findMany({
-          where: { resourceId: id },
+          where: {
+            OR: [
+              { resourceId: id },
+              {
+                resourceId: item.user.id,
+                action: { startsWith: "freeAccess." },
+              },
+            ],
+          },
           take: 50,
           orderBy: order,
           select: {
@@ -244,6 +274,7 @@ export class ControlQueries {
       user: {
         id: user.id,
         name: user.displayName,
+        emails: applicationEmails(user.externalIdentities),
         verified: user.externalIdentities.some((x) => x.verifiedAt),
         synthetic:
           user.externalIdentities.length > 0 &&
@@ -327,6 +358,15 @@ export class ControlQueries {
         vertical: true,
         status: true,
         createdAt: true,
+        onboarding: {
+          select: {
+            id: true,
+            step: true,
+            createdAt: true,
+            updatedAt: true,
+            completedAt: true,
+          },
+        },
         commercialSubscription: {
           select: {
             id: true,
@@ -385,7 +425,7 @@ export class ControlQueries {
       UNION ALL
       SELECT m."id",m."createdAt",'manual' AS "kind" FROM "ManualActivation" m
       WHERE (${stateFilter}::text IS NULL OR (CASE WHEN m."state"='ACTIVE' AND m."expiresAt"<=${now} THEN 'EXPIRED' ELSE m."state"::text END)=${stateFilter})
-        AND (${query}='' OR EXISTS (SELECT 1 FROM "CommercialApplication" a JOIN "InternalUser" u ON u."id"=a."userId" WHERE a."id"=m."applicationId" AND (lower(u."displayName") LIKE ${starts} OR u."id"::text=${query}))
+        AND (${query}='' OR EXISTS (SELECT 1 FROM "CommercialApplication" a JOIN "InternalUser" u ON u."id"=a."userId" WHERE a."id"=m."applicationId" AND (lower(u."displayName") LIKE ${starts} OR u."id"::text=${query} OR EXISTS (SELECT 1 FROM "ExternalIdentity" ei WHERE ei."userId"=u."id" AND ei."verifiedAt" IS NOT NULL AND lower(ei."email") LIKE ${starts})))
         OR EXISTS (SELECT 1 FROM "Membership" mm JOIN "Establishment" e ON e."id"=mm."establishmentId" WHERE mm."id"=m."membershipId" AND (lower(e."commercialName") LIKE ${starts} OR e."id"::text=${query})))`;
     const [rows, count] = await this.prisma.client.$transaction(
       [
@@ -426,6 +466,14 @@ export class ControlQueries {
         plan: true,
         state: true,
         expiresAt: true,
+        startsAt: true,
+        mode: true,
+        authorizationBasis: true,
+        branchLimit: true,
+        professionalLimit: true,
+        userLimit: true,
+        whatsappLimit: true,
+        aiSessionLimit: true,
         createdAt: true,
         applicationId: true,
         version: true,
@@ -436,7 +484,17 @@ export class ControlQueries {
           },
         },
         application: {
-          select: { user: { select: { id: true, displayName: true } } },
+          select: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                externalIdentities: {
+                  select: { email: true, verifiedAt: true },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -468,6 +526,16 @@ export class ControlQueries {
         select: {
           id: true,
           displayName: true,
+          commercialApplication: {
+            select: {
+              id: true,
+              selectedPlan: true,
+              manualActivation: true,
+              subscription: {
+                select: { state: true, plan: true, evidenceSource: true },
+              },
+            },
+          },
           createdAt: true,
           platformAccess: {
             select: { role: true, version: true, revokedAt: true },
@@ -495,7 +563,26 @@ export class ControlQueries {
       }),
       this.prisma.client.internalUser.count({ where }),
     ]);
-    return wrap(items, total, q);
+    return wrap(
+      items.map((user) => ({
+        ...user,
+        commercialApplication: user.commercialApplication
+          ? {
+              ...user.commercialApplication,
+              manualActivation: user.commercialApplication.manualActivation
+                ? {
+                    ...user.commercialApplication.manualActivation,
+                    effectiveState: effectiveManualState(
+                      user.commercialApplication.manualActivation,
+                    ),
+                  }
+                : null,
+            }
+          : null,
+      })),
+      total,
+      q,
+    );
   }
   async audit(q: ControlPageQuery) {
     if (q.q) idOf(q.q);

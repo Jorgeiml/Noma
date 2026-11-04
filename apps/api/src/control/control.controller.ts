@@ -20,6 +20,7 @@ import {
 import { ControlFilter } from "./control.filter";
 import { ControlQueries } from "./control.queries";
 import { ControlOperations } from "./control.operations";
+import { freeAccessOf, freeChangeOf } from "./free-access.dto";
 import { ROLE_PERMISSIONS } from "./control.contract";
 import { assertStrongAuthentication } from "./control.policy";
 import {
@@ -37,6 +38,24 @@ export class ControlController {
     private readonly queries: ControlQueries,
     private readonly operations: ControlOperations,
   ) {}
+  @Post("users/:id/free-access")
+  @NeedsControl("subscriptions.manage")
+  freeAccess(
+    @Req() req: ControlRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.operations.freeAccess(req.control, id, freeAccessOf(body));
+  }
+  @Put("users/:id/free-access")
+  @NeedsControl("subscriptions.manage")
+  freeChange(
+    @Req() req: ControlRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    return this.operations.freeChange(req.control, id, freeChangeOf(body));
+  }
   @Get("context") @NeedsControl("dashboard.read") context(
     @Req() req: ControlRequest,
   ) {

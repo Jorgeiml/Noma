@@ -1,3 +1,9 @@
+import {
+  IdentityScope,
+  IdentityIcon,
+  ContextualNomi,
+} from "../identity/Identity";
+import { personality } from "../identity/personality";
 import { useEffect, useRef, useState } from "react";
 import {
   DEMO_SCENARIOS,
@@ -119,18 +125,27 @@ export default function LandingBody() {
                     </button>
                   ))}
                 </div>
-                <div className="noma-industry-context" aria-live="polite">
-                  <div className="noma-industry-label">
-                    <span>{selected.status}</span>
-                    <span>{selected.number} / 04</span>
+                <IdentityScope vertical={sector}>
+                  <div className="noma-industry-context" aria-live="polite">
+                    <div className="noma-industry-label">
+                      <span>{selected.status}</span>
+                      <span>{selected.number} / 04</span>
+                    </div>
+                    <h3>
+                      <IdentityIcon vertical={sector} /> {selected.label}
+                    </h3>
+                    <div className="identity-intro">
+                      <p>{personality(sector).copy}</p>
+                      <ContextualNomi />
+                    </div>
+                    <p>{selected.context}</p>
+                    <p className="noma-industry-terms">{selected.terms}</p>
+                    <a href={`/demo#${selected.id}`} className="noma-text-link">
+                      Ver un ejemplo ilustrativo
+                      <span aria-hidden="true">↗</span>
+                    </a>
                   </div>
-                  <h3>{selected.label}</h3>
-                  <p>{selected.context}</p>
-                  <p className="noma-industry-terms">{selected.terms}</p>
-                  <a href={`/demo#${selected.id}`} className="noma-text-link">
-                    Ver un ejemplo ilustrativo<span aria-hidden="true">↗</span>
-                  </a>
-                </div>
+                </IdentityScope>
               </div>
               <p className="noma-industry-disclaimer">
                 Beauty → Dental → Fitness → Automotive. Lanzamiento comercial

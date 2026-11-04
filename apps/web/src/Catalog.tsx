@@ -559,6 +559,22 @@ export function Catalog({
                   </div>
                 </div>
                 <label htmlFor="service-description">Descripción</label>
+                <label htmlFor="service-booking-mode">¿Cómo se reserva?</label>
+                <select
+                  id="service-booking-mode"
+                  value={draft.bookingMode ?? "PROFESSIONAL"}
+                  onChange={(event) =>
+                    change(
+                      "bookingMode",
+                      event.target.value as "PROFESSIONAL" | "RESOURCE_ONLY",
+                    )
+                  }
+                >
+                  <option value="PROFESSIONAL">Con un profesional</option>
+                  <option value="RESOURCE_ONLY">
+                    Solo espacio o equipo · sin profesional
+                  </option>
+                </select>
                 <textarea
                   id="service-description"
                   rows={3}

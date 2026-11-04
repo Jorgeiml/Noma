@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import type { Establishment, EstablishmentDraft } from "./api/platform";
 import { SectorSummary } from "./SectorSummary";
 import { BusinessLogo } from "./BusinessLogo";
+import { BEAUTY_SUBTYPES } from "../../api/src/onboarding/onboarding.contract";
+import { COUNTRIES } from "./onboarding/BusinessFields";
 const currencyNames = new Intl.DisplayNames("es", { type: "currency" });
 export function BusinessProfile({
   saved,
@@ -154,6 +156,78 @@ export function BusinessProfile({
                       />
                     </div>
                   </div>
+                </>
+              )}
+              {section === "profile" && saved.countryCode !== undefined && (
+                <>
+                  <div className="form-pair">
+                    <label>
+                      País
+                      <select
+                        value={draft.countryCode ?? ""}
+                        onChange={(e) => change("countryCode", e.target.value)}
+                      >
+                        <option value="">Sin especificar</option>
+                        {COUNTRIES.map(([id, label]) => (
+                          <option key={id} value={id}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Ciudad
+                      <input
+                        maxLength={100}
+                        value={draft.city ?? ""}
+                        onChange={(e) => change("city", e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Dirección física
+                    <input
+                      maxLength={250}
+                      value={draft.address ?? ""}
+                      onChange={(e) => change("address", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Correo comercial
+                    <input
+                      type="email"
+                      maxLength={320}
+                      value={draft.businessEmail ?? ""}
+                      onChange={(e) => change("businessEmail", e.target.value)}
+                    />
+                  </label>
+                  {saved.sectorConfiguration.vertical === "BEAUTY" && (
+                    <label>
+                      Tipo de negocio
+                      <select
+                        value={draft.beautySubtype ?? ""}
+                        onChange={(e) =>
+                          change("beautySubtype", e.target.value)
+                        }
+                      >
+                        <option value="">Sin especificar</option>
+                        {Object.entries(BEAUTY_SUBTYPES).map(([id, label]) => (
+                          <option key={id} value={id}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label>
+                    Sobre tu negocio
+                    <textarea
+                      rows={3}
+                      maxLength={1000}
+                      value={draft.description ?? ""}
+                      onChange={(e) => change("description", e.target.value)}
+                    />
+                  </label>
                 </>
               )}
               {section === "preferences" && (

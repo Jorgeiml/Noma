@@ -1,4 +1,5 @@
 import { Workspace } from "./Workspace";
+import { BusinessEntry } from "./onboarding/BusinessEntry";
 import type { ProductArea } from "./ProductNavigation";
 import "./styles.css";
 import { useEffect, useState } from "react";
@@ -44,6 +45,8 @@ export default function PrivateEntry({
   return mode === "login" ? (
     <LocalEntry area={area} />
   ) : (
-    <Workspace routeMode="app" initialArea={area} />
+    <BusinessEntry>
+      <Workspace routeMode="app" initialArea={area} />
+    </BusinessEntry>
   );
 }

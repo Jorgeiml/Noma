@@ -1,3 +1,4 @@
+import { subscriptionIsEffective } from "./effective-access";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import {
   Injectable,
@@ -274,6 +275,8 @@ export class CommercialService {
                 state: true,
                 plan: true,
                 expiresAt: true,
+                startsAt: true,
+                mode: true,
                 membershipId: true,
               },
             },
@@ -284,10 +287,15 @@ export class CommercialService {
     const pilotSummary = pilot
       ? {
           kind: "MANUAL_PILOT" as const,
+          source: "MANUAL" as const,
+          mode: pilot.mode,
+          startsAt: pilot.startsAt,
           state:
             pilot.state === "ACTIVE" && pilot.expiresAt <= new Date()
               ? "EXPIRED"
-              : pilot.state,
+              : pilot.state === "ACTIVE" && pilot.startsAt > new Date()
+                ? "SCHEDULED"
+                : pilot.state,
           plan: pilot.plan,
           expiresAt: pilot.expiresAt,
           accessAuthorized: manual?.id === pilot.id,
@@ -308,7 +316,7 @@ export class CommercialService {
               select: {
                 commercialName: true,
                 status: true,
-                commercialSubscription: { select: { state: true } },
+                commercialSubscription: true,
               },
             },
           },
@@ -332,8 +340,11 @@ export class CommercialService {
         subscriptionState:
           manual?.membershipId === m.id
             ? "ACTIVE"
-            : (m.establishment.commercialSubscription?.state ??
-              "ACTIVATION_PENDING"),
+            : m.establishment.commercialSubscription?.state === "ACTIVE" &&
+                !subscriptionIsEffective(m.establishment.commercialSubscription)
+              ? "SUSPENDED"
+              : (m.establishment.commercialSubscription?.state ??
+                "ACTIVATION_PENDING"),
         manualActivation:
           pilot?.membershipId === m.id &&
           (!m.establishment.commercialSubscription ||
@@ -379,19 +390,7 @@ export class CommercialService {
       include: { establishment: { include: { commercialSubscription: true } } },
     });
     const subscription = member?.establishment.commercialSubscription;
-    const existingAccess =
-      !!member &&
-      !!subscription &&
-      subscription.state === "ACTIVE" &&
-      !!subscription.activatedAt &&
-      !(
-        subscription.evidenceSource === "LOCAL_SYNTHETIC" &&
-        !localAccessAllowed(process.env)
-      ) &&
-      !(
-        subscription.evidenceSource === "VERIFIED_EXTERNAL" &&
-        !subscription.evidenceRef
-      );
+    const existingAccess = !!member && subscriptionIsEffective(subscription);
     const manual =
       member && !existingAccess
         ? await manualAccessForUser(this.prisma, userId)

@@ -5,13 +5,16 @@ export type NomiMood =
   | "thinking"
   | "confirm"
   | "celebrate"
+  | "energized"
   | "rest"
   | "beach";
 export function Nomi({
   mood = "welcome",
   className = "",
+  scene = null,
 }: {
   mood?: NomiMood;
+  scene?: "mirror" | "brush" | "weight" | "tool" | null;
   className?: string;
 }) {
   const id = useId().replaceAll(":", "");
@@ -46,6 +49,7 @@ export function Nomi({
       ref={ref}
       className={`nomi ${className}`}
       data-mood={mood}
+      data-scene={scene ?? undefined}
       data-active={active}
       viewBox="0 0 500 560"
       fill="none"
@@ -94,6 +98,36 @@ export function Nomi({
           <stop offset="1" stopColor="#2a271e" stopOpacity="0" />
         </radialGradient>
       </defs>
+      {mood === "energized" && (
+        <g className="nomi-energy" strokeLinecap="round">
+          <ellipse
+            cx="248"
+            cy="303"
+            rx="186"
+            ry="205"
+            fill="#ffe4ae"
+            fillOpacity=".65"
+          />
+          <ellipse
+            cx="248"
+            cy="303"
+            rx="163"
+            ry="185"
+            stroke="#edb24d"
+            strokeWidth="2"
+            strokeDasharray="6 18"
+          />
+          <path
+            d="m91 224-21-18m50-65-11-28m75 6-2-30m149 49 18-27m48 84 29-11m-12 97 27 3M86 355l-26 13m335 39 24 17"
+            stroke="#b85825"
+            strokeWidth="6"
+          />
+          <path
+            d="m108 165 6 14 15 6-15 6-6 14-6-14-15-6 15-6Zm282 142 7 17 18 7-18 7-7 17-7-17-18-7 18-7Z"
+            fill="#da8034"
+          />
+        </g>
+      )}
       {mood === "beach" && (
         <g>
           <ellipse cx="248" cy="501" rx="185" ry="25" fill="#ead6ad" />
@@ -176,6 +210,33 @@ export function Nomi({
             strokeWidth="4"
             strokeLinecap="round"
           />
+          {mood === "energized" && (
+            <g>
+              <path d="M218 281q18 5 37 0c-1 28-34 34-37 0Z" fill="#713921" />
+              <path
+                d="M226 300q10-9 21-2"
+                stroke="#f5a283"
+                strokeWidth="6"
+                strokeLinecap="round"
+              />
+              <ellipse
+                cx="196"
+                cy="279"
+                rx="9"
+                ry="4"
+                fill="#d94e26"
+                fillOpacity=".35"
+              />
+              <ellipse
+                cx="273"
+                cy="280"
+                rx="9"
+                ry="4"
+                fill="#d94e26"
+                fillOpacity=".35"
+              />
+            </g>
+          )}
           {mood === "beach" && (
             <g stroke="#30382f" strokeWidth="5" strokeLinejoin="round">
               <path
@@ -207,6 +268,79 @@ export function Nomi({
           strokeWidth="2"
         />
         <g className="nomi-hand">
+          {scene && (
+            <g
+              className="nomi-accessory"
+              stroke="#3d3d37"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {scene === "mirror" && (
+                <>
+                  <path d="m373 297 19-42" strokeWidth="9" />
+                  <ellipse
+                    cx="401"
+                    cy="235"
+                    rx="23"
+                    ry="29"
+                    transform="rotate(23 401 235)"
+                    fill="#c4a08f"
+                  />
+                  <ellipse
+                    cx="401"
+                    cy="235"
+                    rx="17"
+                    ry="23"
+                    transform="rotate(23 401 235)"
+                    fill="#e8f0ed"
+                  />
+                  <path d="m395 238 13-16" stroke="#fff" />
+                </>
+              )}
+              {scene === "brush" && (
+                <>
+                  <path d="m373 299 39-56" stroke="#235e52" strokeWidth="11" />
+                  <path d="m402 250-13-10 15-20 13 10z" fill="#d4efea" />
+                  <path
+                    d="m392 236 10 8m-6-14 10 8"
+                    stroke="#588e83"
+                    strokeWidth="2"
+                  />
+                </>
+              )}
+              {scene === "weight" && (
+                <g transform="rotate(-24 378 284)">
+                  <path d="M349 282h58" strokeWidth="9" />
+                  <rect
+                    x="343"
+                    y="266"
+                    width="15"
+                    height="32"
+                    rx="5"
+                    fill="#bb644b"
+                  />
+                  <rect
+                    x="397"
+                    y="266"
+                    width="15"
+                    height="32"
+                    rx="5"
+                    fill="#bb644b"
+                  />
+                </g>
+              )}
+              {scene === "tool" && (
+                <>
+                  <path
+                    d="m373 298 35-44-8-12 5-16 9 13 10 2 11-10-3 17-14 10-34 47z"
+                    fill="#aebfcc"
+                  />
+                  <path d="m382 291 21-29" stroke="#ecf4f9" />
+                </>
+              )}
+            </g>
+          )}
           <path
             d="M315 339c25-7 38-28 45-45 7-16 24-12 24 3 1 30-22 65-51 72"
             fill="#f68b46"

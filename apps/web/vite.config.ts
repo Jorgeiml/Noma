@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
     build: { manifest: true },
     server: { port, proxy: { "/api": { target, changeOrigin: true } } },
     test: {
+      // Keep jsdom suites within local Windows memory limits, alongside PostgreSQL.
+      maxWorkers: 2,
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
       clearMocks: true,

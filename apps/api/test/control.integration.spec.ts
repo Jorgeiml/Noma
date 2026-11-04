@@ -238,6 +238,16 @@ describe("Noma Control: permisos, transiciones y auditoría en PostgreSQL real",
     expect(response.body.items).toHaveLength(2);
     expect(response.body.total).toBe(12);
     expect(response.body.page).toBe(2);
+    for (const item of response.body.items) {
+      expect(item.user.emails).toEqual([
+        {
+          email: expect.stringMatching(/@example\.test$/),
+          verified: expect.any(Boolean),
+        },
+      ]);
+      expect(item.user).not.toHaveProperty("externalIdentities");
+      expect(item.user).not.toHaveProperty("subject");
+    }
     await api("get", "/applications?size=999").expect(400);
     await api("get", "/applications?role=PLATFORM_OWNER").expect(400);
     const detail = await api(
@@ -246,6 +256,11 @@ describe("Noma Control: permisos, transiciones y auditoría en PostgreSQL real",
     ).expect(200);
     expect(detail.body.user.verified).toBe(true);
     expect(detail.body.user.id).toBe(f().users[7]);
+    expect(detail.body.user.emails).toEqual([
+      { email: `${f().subjectPrefix}-7@example.test`, verified: true },
+    ]);
+    expect(detail.body.user).not.toHaveProperty("externalIdentities");
+    expect(detail.body.user).not.toHaveProperty("subject");
   });
   it("soporte y gestión comercial no aprueban, activan ni se elevan privilegios", async () => {
     for (const index of [2, 3]) {

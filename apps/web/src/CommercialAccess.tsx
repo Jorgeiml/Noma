@@ -5,17 +5,18 @@ import {
   type IdentityPage,
 } from "./api/commercial";
 import { ApiError } from "./api/platform";
-import {
-  COMMERCIAL_PLANS,
-  PLAN_IDS,
-  type PlanId,
-} from "../../api/src/commercial/plan.contract";
 import { Nomi } from "./public/Nomi";
-import { PublicHeader, PublicFooter } from "./public/PublicChrome";
+import {
+  NomaWordmark,
+  PublicHeader,
+  PublicFooter,
+} from "./public/PublicChrome";
 import { replacePage, safeAppNext } from "./navigation";
 import "./public/public.css";
 import "./commercial-access.css";
 import { CommercialAuthorizationNotice } from "./CommercialAuthorizationNotice";
+import { AccountWelcome, hasReadyBusiness } from "./AccountWelcome";
+import { OnboardingInvitation } from "./onboarding/OnboardingInvitation";
 const titles: Record<IdentityPage, string> = {
   login: "Qué bueno verte de nuevo.",
   signup: "Tu cuenta. El primer paso.",
@@ -23,12 +24,6 @@ const titles: Record<IdentityPage, string> = {
   recover: "Volvamos a encontrarte.",
   activation: "Tu cuenta tiene su lugar.",
   denied: "Este espacio necesita autorización.",
-};
-const stateLabels = {
-  REGISTRATION_STARTED: "Registro iniciado",
-  IDENTITY_VERIFIED: "Identidad verificada",
-  PLAN_SELECTED: "Propuesta de plan seleccionada",
-  ACTIVATION_PENDING: "Activación comercial pendiente",
 };
 export default function CommercialAccess({ page }: { page: IdentityPage }) {
   const [config, setConfig] = useState<{
@@ -42,7 +37,6 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
-  const [plan, setPlan] = useState<PlanId>("GROW");
   const next = safeAppNext(
     new URLSearchParams(window.location.search).get("next"),
   );
@@ -57,8 +51,6 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
           const current = await commercialApi.account();
           if (!active) return;
           setAccount(current);
-          if (current.application?.selectedPlan)
-            setPlan(current.application.selectedPlan);
         }
       } catch (failure) {
         if (!active) return;
@@ -117,19 +109,37 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
     });
   }
   const identityForm = ["login", "signup", "recover"].includes(page);
+  const readyBusiness = !!account && hasReadyBusiness(account);
+  const compact =
+    page === "activation" &&
+    account?.user.verified &&
+    (readyBusiness || account.manualActivation?.accessAuthorized);
   return (
     <div className="noma-site">
-      <PublicHeader />
-      <main id="noma-content" className="noma-access">
-        <div className="noma-access-intro">
-          <p className="noma-kicker">NOMA · TU IDENTIDAD, CON CUIDADO</p>
-          <h1>{titles[page]}</h1>
-          <p>
-            Una identidad para ti. Una membresía para cada negocio. El acceso
-            operativo siempre necesita autorización.
-          </p>
-          <Nomi mood={page === "verify" ? "listening" : "welcome"} />
-        </div>
+      {compact ? (
+        <header className="noma-activation-header">
+          <a href="/" aria-label="Noma · Inicio">
+            <NomaWordmark />
+          </a>
+        </header>
+      ) : (
+        <PublicHeader />
+      )}
+      <main
+        id="noma-content"
+        className={`noma-access ${page === "activation" && account ? "noma-account-page" : ""} ${compact ? "noma-activation-compact" : ""}`}
+      >
+        {!(page === "activation" && account) && (
+          <div className="noma-access-intro">
+            <p className="noma-kicker">NOMA · TU IDENTIDAD, CON CUIDADO</p>
+            <h1>{titles[page]}</h1>
+            <p>
+              Tu cuenta para organizar tu negocio, conectar a tu equipo y seguir
+              creciendo.
+            </p>
+            <Nomi mood={page === "verify" ? "listening" : "welcome"} />
+          </div>
+        )}
         <section className="noma-access-panel" aria-label="Acceso comercial">
           {loading && (
             <p role="status">Comprobando la configuración de acceso…</p>
@@ -192,7 +202,7 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
               </h2>
               <p>
                 {page === "signup"
-                  ? "Verificarás tu correo con el proveedor. Crear una cuenta no crea un establecimiento, activa un plan ni autoriza un cobro."
+                  ? "Crea tu cuenta y verifica tu correo. Después podrás explorar los planes; los datos de tu negocio se completan en la preparación guiada, cuando tu acceso esté habilitado."
                   : page === "recover"
                     ? "Continuar abre el login seguro del proveedor. Allí elige «¿Olvidaste tu contraseña?». El proveedor gestiona la recuperación y sus correos; Noma no recibe tu contraseña."
                     : "La contraseña y los factores de acceso se gestionan en el proveedor de identidad, fuera de Noma."}
@@ -291,110 +301,20 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
           )}
           {page === "activation" && account && (
             <>
-              <p className="noma-kicker">
-                {account.application
-                  ? stateLabels[account.application.state]
-                  : "IDENTIDAD REGISTRADA"}
-              </p>
-              <h2>
-                {account.user.verified
-                  ? "Identidad lista. Activación por separado."
-                  : "Primero, verifica tu identidad."}
-              </h2>
-              {!account.user.verified ? (
-                <a href="/verificar-correo" className="noma-button">
-                  Verificar mi correo
-                </a>
-              ) : (
+              <AccountWelcome
+                account={account}
+                busy={busy}
+                run={run}
+                onAccount={setAccount}
+                onNotice={setNotice}
+              />
+              {account.user.verified && (
                 <>
-                  <p>
-                    Las propuestas de planes no están abiertas a contratación.
-                    Elegir una preferencia no crea un negocio ni una suscripción
-                    activa.
-                  </p>
-                  {account.application &&
-                    ["IDENTITY_VERIFIED", "PLAN_SELECTED"].includes(
-                      account.application.state,
-                    ) && (
-                      <form
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void run(async () => {
-                            await commercialApi.selectPlan(plan);
-                            setAccount(await commercialApi.account());
-                            setNotice(
-                              "Preferencia guardada. No se realizó ningún cobro.",
-                            );
-                          });
-                        }}
-                      >
-                        <label htmlFor="proposed-plan">
-                          Propuesta de plan de interés
-                        </label>
-                        <select
-                          id="proposed-plan"
-                          value={plan}
-                          onChange={(event) =>
-                            setPlan(event.target.value as PlanId)
-                          }
-                          disabled={busy}
-                        >
-                          {PLAN_IDS.map((id) => {
-                            const item = COMMERCIAL_PLANS.find(
-                              (p) => p.id === id,
-                            );
-                            return (
-                              <option key={id} value={id}>
-                                {item
-                                  ? `${item.name} · propuesta $${item.monthly}/mes + IVA`
-                                  : "Enterprise · propuesta individual"}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <button className="noma-button" disabled={busy}>
-                          Guardar preferencia
-                        </button>
-                      </form>
-                    )}
-                  {account.application?.state === "PLAN_SELECTED" && (
-                    <button
-                      className="noma-text-action"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(async () => {
-                          await commercialApi.requestActivation();
-                          setAccount(await commercialApi.account());
-                          setNotice(
-                            "Solicitud registrada. La activación sigue pendiente; no se cobró ni creó un establecimiento.",
-                          );
-                        })
-                      }
-                    >
-                      Registrar solicitud de activación
-                    </button>
+                  {!readyBusiness && <OnboardingInvitation account={account} />}
+                  {!!account.memberships.length && !readyBusiness && (
+                    <h3>Tus negocios</h3>
                   )}
-                  {(account.application?.review ||
-                    account.manualActivation) && (
-                    <CommercialAuthorizationNotice account={account} />
-                  )}
-                  {account.application?.state === "ACTIVATION_PENDING" &&
-                    !account.application.review &&
-                    !account.manualActivation && (
-                      <p className="noma-access-notice">
-                        Tu solicitud está pendiente. No hay un negocio nuevo ni
-                        una suscripción habilitada automáticamente. El
-                        lanzamiento general requiere las cuatro verticales
-                        preparadas.
-                      </p>
-                    )}
-                  <h3>Tus establecimientos autorizados</h3>
-                  {!account.memberships.length ? (
-                    <p>
-                      No hay establecimientos habilitados para esta identidad.
-                      No vinculamos cuentas por coincidencia de correo.
-                    </p>
-                  ) : (
+                  {!!account.memberships.length && (
                     <ul className="noma-membership-list">
                       {account.memberships.map((member) => (
                         <li key={member.id}>
@@ -453,6 +373,26 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
               </a>
             </>
           )}
+          {compact && account && (
+            <details className="noma-activation-details">
+              <summary>Detalles de mi cuenta</summary>
+              <p>{account.user.email}</p>
+              {account.manualActivation && (
+                <>
+                  <p>Plan {account.manualActivation.plan}</p>
+                  <CommercialAuthorizationNotice account={account} />
+                </>
+              )}
+              {readyBusiness && <a href="/onboarding">Retomar configuración</a>}
+              {config?.localEnabled && (
+                <p>
+                  <a href={`/dev/login?next=${encodeURIComponent(next)}`}>
+                    Acceso con código de desarrollo
+                  </a>
+                </p>
+              )}
+            </details>
+          )}
           {account && (
             <button
               className="noma-text-action"
@@ -467,7 +407,7 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
               Cerrar sesión de Noma
             </button>
           )}
-          {config?.localEnabled && (
+          {!compact && config?.localEnabled && (
             <aside className="noma-local-entry">
               <p className="noma-kicker">SOLO DESARROLLO LOCAL</p>
               <a href={`/dev/login?next=${encodeURIComponent(next)}`}>
@@ -477,7 +417,7 @@ export default function CommercialAccess({ page }: { page: IdentityPage }) {
           )}
         </section>
       </main>
-      <PublicFooter />
+      {!compact && <PublicFooter />}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type { OwnerContext } from "./local.guard";
 import type { EstablishmentUpdateDto } from "./establishment.dto";
 import { sectorConfiguration } from "../sector/sector.contract";
 import type { LogoDto } from "./logo.dto";
+import { businessAuthorization } from "../commercial/business-authorization";
 
 @Injectable()
 export class PlatformService {
@@ -61,6 +62,11 @@ export class PlatformService {
   ) {
     this.authorize(owner, id);
     return this.prisma.client.$transaction(async (tx) => {
+      if (owner.identityMode === "commercial") {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('noma-control-writes',0))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${owner.establishmentId},0))`;
+        await businessAuthorization(tx, owner);
+      }
       const updated = await tx.establishment.updateMany({
         where: {
           id: owner.establishmentId,

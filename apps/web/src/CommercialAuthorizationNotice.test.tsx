@@ -17,6 +17,9 @@ it("distingue aprobación de acceso y pago", () => {
   expect(screen.getByRole("status")).toHaveTextContent(
     "La aprobación no registra un pago ni crea un negocio",
   );
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "El equipo de Noma todavía debe habilitar tu acceso",
+  );
 });
 it("expresa un rechazo sin fingir eliminación de la identidad", () => {
   render(
@@ -31,7 +34,7 @@ it("expresa un rechazo sin fingir eliminación de la identidad", () => {
     "Tu solicitud no fue aprobada",
   );
 });
-it("un piloto sin negocio autoriza el alta futura sin inventar onboarding", () => {
+it("un piloto sin negocio permite prepararlo sin creación automática ni pago", () => {
   render(
     <CommercialAuthorizationNotice
       account={{
@@ -48,11 +51,11 @@ it("un piloto sin negocio autoriza el alta futura sin inventar onboarding", () =
     />,
   );
   expect(screen.getByRole("status")).toHaveTextContent(
-    "la creación del negocio todavía no está disponible",
+    "Puedes preparar tu negocio paso a paso",
   );
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });
-it.each(["EXPIRED", "SUSPENDED", "REVOKED"] as const)(
+it.each(["EXPIRED", "SUSPENDED", "REVOKED", "SCHEDULED"] as const)(
   "informa que un piloto %s no concede acceso",
   (state) => {
     render(
@@ -78,3 +81,28 @@ it.each(["EXPIRED", "SUSPENDED", "REVOKED"] as const)(
     );
   },
 );
+it.each([
+  ["TEST", "Prueba gratuita"],
+  ["PILOT", "Piloto gratuito"],
+  ["COURTESY", "Cortesía gratuita"],
+] as const)("muestra la modalidad %s concedida", (mode, label) => {
+  render(
+    <CommercialAuthorizationNotice
+      account={{
+        ...account,
+        manualActivation: {
+          kind: "MANUAL_PILOT",
+          state: "ACTIVE",
+          mode,
+          plan: "GROW",
+          expiresAt: "2026-12-01T00:00:00Z",
+          accessAuthorized: true,
+          onboardingAuthorized: true,
+        },
+      }}
+    />,
+  );
+  expect(screen.getByRole("status")).toHaveTextContent(
+    `${label} · vigente hasta`,
+  );
+});

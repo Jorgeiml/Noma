@@ -1,6 +1,7 @@
 import { request } from "./platform";
 export type PriceMode = "FIXED" | "FROM" | "RANGE" | "ASSESSMENT_REQUIRED";
 export interface OfferingDraft {
+  bookingMode?: "PROFESSIONAL" | "RESOURCE_ONLY";
   name: string;
   category: string | null;
   description: string;
@@ -57,6 +58,7 @@ export const blankOffering = (): OfferingDraft => ({
 });
 export function offeringDraft(value: OfferingDraft): OfferingDraft {
   return {
+    bookingMode: value.bookingMode,
     name: value.name,
     category: value.category,
     description: value.description,

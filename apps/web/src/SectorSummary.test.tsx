@@ -8,7 +8,7 @@ it("muestra la clasificación persistida y diferencia capacidad real y planifica
   expect(
     screen.getByRole("heading", { name: sectorConfiguration("BEAUTY").label }),
   ).toBeInTheDocument();
-  expect(document.querySelectorAll(".sector-capabilities li")).toHaveLength(7);
+  expect(document.querySelectorAll(".sector-capabilities li")).toHaveLength(8);
   expect(
     screen.queryByText(/Verticales y orden de desarrollo/),
   ).not.toBeInTheDocument();

@@ -6,6 +6,10 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../persistence/prisma.service";
 import { Prisma } from "../generated/prisma/client";
+import {
+  businessAuthorization,
+  assertBusinessLimit,
+} from "../commercial/business-authorization";
 import type { OwnerContext } from "../platform/local.guard";
 import type {
   BranchDto,
@@ -104,6 +108,8 @@ export class StaffService {
   ) {
     const id = await this.prisma.client.$transaction(async (tx) => {
       const tenant = owner.establishmentId;
+      if (owner.identityMode === "commercial")
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('noma-control-writes',0))`;
       // Serializes configuration changes within one tenant, never appointment locks.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${tenant}, 0))`;
       const membership = await tx.membership.findFirst({
@@ -118,6 +124,7 @@ export class StaffService {
       });
       if (!membership)
         throw new ForbiddenException("Pertenencia no autorizada");
+      await businessAuthorization(tx, owner);
       return action(tx, tenant);
     });
     return { id, configuration: await this.configuration(owner) };
@@ -138,6 +145,14 @@ export class StaffService {
       });
       if (!current) missing();
       sameVersion(current.version, version);
+      if (
+        await tx.appointment.count({
+          where: { establishmentId: tenant, professionalId: id },
+        })
+      )
+        conflict(
+          "Este profesional tiene citas. Desactívalo para conservar su historial.",
+        );
       const where = { establishmentId: tenant, professionalId: id };
       await tx.scheduleException.deleteMany({
         where: { establishmentId: tenant, schedule: { professionalId: id } },
@@ -181,6 +196,7 @@ export class StaffService {
     version?: number,
   ) {
     return this.write(owner, async (tx, tenant) => {
+      if (!id) await assertBusinessLimit(tx, owner, "branches");
       if (id) {
         const current = await this.branch(tx, tenant, id);
         sameVersion(current.version, version!);
@@ -238,6 +254,7 @@ export class StaffService {
     version?: number,
   ) {
     return this.write(owner, async (tx, tenant) => {
+      if (!id) await assertBusinessLimit(tx, owner, "professionals");
       const current = id
         ? await tx.professional.findFirst({
             where: { id, establishmentId: tenant },
@@ -335,6 +352,35 @@ export class StaffService {
         });
         if (!current) missing();
         sameVersion(current.version, version!);
+        if (data.capacity < current.capacity) {
+          const allocations = await tx.appointmentResource.findMany({
+            where: {
+              establishmentId: tenant,
+              resourceId: id,
+              appointment: {
+                state: { not: "CANCELLED" },
+                endsAt: { gt: new Date() },
+              },
+            },
+            include: {
+              appointment: { select: { startsAt: true, endsAt: true } },
+            },
+          });
+          const events = allocations
+            .flatMap((a) => [
+              [a.appointment.startsAt.getTime(), a.units],
+              [a.appointment.endsAt.getTime(), -a.units],
+            ])
+            .sort((a, b) => a[0]! - b[0]! || a[1]! - b[1]!);
+          let used = 0;
+          for (const [, delta] of events) {
+            used += delta!;
+            if (used > data.capacity)
+              conflict(
+                "La capacidad nueva no alcanza para las citas ya registradas. Reagenda esas citas antes de reducirla.",
+              );
+          }
+        }
         if (current.branchId !== data.branchId)
           conflict("La sucursal de un recurso existente no se puede cambiar");
         if (

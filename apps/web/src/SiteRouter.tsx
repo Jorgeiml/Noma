@@ -6,6 +6,7 @@ const PrivateEntry = lazy(() => import("./PrivateEntry"));
 const DemoPage = lazy(() => import("./public/DemoPage"));
 const CommercialAccess = lazy(() => import("./CommercialAccess"));
 const ControlPanel = lazy(() => import("./control/ControlPanel"));
+const Onboarding = lazy(() => import("./onboarding/Onboarding"));
 export function SiteRouter() {
   const route = resolveRoute(window.location.pathname, window.location.hash);
   useEffect(() => {
@@ -17,6 +18,18 @@ export function SiteRouter() {
     window.addEventListener("hashchange", handleLegacyHash);
     return () => window.removeEventListener("hashchange", handleLegacyHash);
   }, [route.redirect]);
+  if (window.location.pathname === "/onboarding")
+    return (
+      <Suspense
+        fallback={
+          <main className="private-loading" role="status">
+            Preparando tu espacio…
+          </main>
+        }
+      >
+        <Onboarding />
+      </Suspense>
+    );
   if (
     window.location.pathname === "/control" ||
     window.location.pathname.startsWith("/control/")

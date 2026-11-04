@@ -167,7 +167,7 @@ export function intervalsDto(value: unknown): Interval[] {
         typeof v.start !== "string" ||
         typeof v.end !== "string" ||
         !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.start) ||
-        !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.end)
+        !/^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$/.test(v.end)
       )
         return invalid("Usa horas locales HH:mm entre 00:00 y 23:59");
       if (v.start >= v.end)

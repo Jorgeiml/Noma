@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { COMMERCIAL_PLANS } from "../../../api/src/commercial/plan.contract";
+import {
+  COMMERCIAL_PLANS,
+  type PlanId,
+} from "../../../api/src/commercial/plan.contract";
 import { Nomi } from "./Nomi";
 import { PlanCharacter } from "./PlanCharacter";
 import { publicContactUrl } from "./demo-scenarios";
+import "./explorer.css";
 
 const plans = COMMERCIAL_PLANS;
 const comparison = [
@@ -33,7 +37,15 @@ const comparison = [
     "Sin límite comercial fijo",
   ],
 ] as const;
-export function Pricing() {
+export function Pricing({
+  selection,
+}: {
+  selection?: {
+    plan: PlanId;
+    disabled: boolean;
+    onSelect: (plan: PlanId) => void;
+  };
+} = {}) {
   const [annual, setAnnual] = useState(false);
   const [mobilePlan, setMobilePlan] = useState("Grow");
   const [showSessions, setShowSessions] = useState(false);
@@ -89,6 +101,7 @@ export function Pricing() {
             className="noma-plan"
             data-featured={plan.name === "Grow"}
             data-mobile-selected={mobilePlan === plan.name}
+            data-selected={selection?.plan === plan.id}
             aria-labelledby={`plan-${plan.name}`}
           >
             <div className="noma-plan-intro">
@@ -140,6 +153,22 @@ export function Pricing() {
                 </button>
               </li>
             </ul>
+            {selection && (
+              <button
+                type="button"
+                className="noma-plan-select"
+                aria-pressed={selection.plan === plan.id}
+                disabled={selection.disabled}
+                onClick={() => selection.onSelect(plan.id)}
+              >
+                {selection.plan === plan.id
+                  ? `${plan.name} seleccionado`
+                  : `Seleccionar ${plan.name}`}
+                <span aria-hidden="true">
+                  {selection.plan === plan.id ? "✓" : "↗"}
+                </span>
+              </button>
+            )}
           </article>
         ))}
       </div>

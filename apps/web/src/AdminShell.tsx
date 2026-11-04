@@ -1,12 +1,15 @@
 import { type ReactNode } from "react";
 import { NomaWordmark } from "./public/PublicChrome";
 import "./studio-os.css";
+import { IdentityScope, IdentityIcon } from "./identity/Identity";
+import type { Vertical } from "./identity/personality";
 import { WorkspaceGuide } from "./WorkspaceGuide";
 
 /** Presentation only. Authentication and authorized context stay with Workspace. */
 export function AdminShell({
   authorized,
   businessName,
+  vertical,
   businessLogo,
   guideKey,
   userName,
@@ -17,6 +20,7 @@ export function AdminShell({
 }: {
   authorized: boolean;
   businessName?: string;
+  vertical?: Vertical | null;
   businessLogo?: string | null;
   guideKey?: string;
   userName?: string;
@@ -27,7 +31,7 @@ export function AdminShell({
 }) {
   if (!authorized) return children;
   return (
-    <div className="studio-os">
+    <IdentityScope className="studio-os" vertical={vertical}>
       <header className="os-header">
         <a className="os-brand" href="/" aria-label="Noma · Inicio público">
           <NomaWordmark />
@@ -42,7 +46,10 @@ export function AdminShell({
               height="32"
             />
           )}
-          <span className="os-context-label">Tu espacio de trabajo</span>
+          <span className="os-context-label">
+            {vertical && <IdentityIcon vertical={vertical} />}Tu espacio de
+            trabajo
+          </span>
           <strong>{businessName}</strong>
         </div>
         {guideKey && (
@@ -89,6 +96,6 @@ export function AdminShell({
         </details>
       </header>
       {children}
-    </div>
+    </IdentityScope>
   );
 }

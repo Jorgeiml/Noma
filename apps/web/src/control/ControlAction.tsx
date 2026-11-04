@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Application, Context, User } from "./control-api";
 import { controlApi, stateLabel } from "./control-api";
 import { ROLE_LABELS } from "../../../api/src/control/control.contract";
+import { applicantLabel } from "./application-presentation";
 type Action =
   | "APPROVED"
   | "REJECTED"
@@ -25,7 +26,7 @@ const descriptions: Record<Action, { label: string; effect: string }> = {
   ACTIVATE: {
     label: "Autorizar piloto",
     effect:
-      "Autoriza acceso temporal sin pago. Si asocias una membresía existente, su propietario podrá acceder a ese negocio hasta el vencimiento. Sin membresía, solo se autoriza el alta futura; el onboarding aún no está implementado.",
+      "Autoriza acceso temporal sin pago. Si asocias una membresía existente, su propietario podrá preparar ese negocio hasta el vencimiento. Sin membresía, permite crear un único negocio mediante la preparación guiada de belleza y bienestar.",
   },
   SUSPEND: {
     label: "Suspender piloto",
@@ -98,12 +99,14 @@ export function ControlAction({
     if (
       context.permissions.includes("applications.decide") &&
       application.state === "ACTIVATION_PENDING" &&
+      !application.manualActivation &&
       !application.platformReview
     )
       actions.push("APPROVED", "REJECTED");
     if (
       context.permissions.includes("subscriptions.manage") &&
-      application.platformReview?.decision === "APPROVED"
+      application.platformReview?.decision === "APPROVED" &&
+      application.manualActivation?.authorizationBasis !== "DIRECT_GRANT"
     ) {
       if (!pilot) actions.push("ACTIVATE");
       else if (pilot.state !== "REVOKED") {
@@ -223,7 +226,8 @@ export function ControlAction({
   return (
     <section className="control-actions" aria-label="Operación administrativa">
       <label htmlFor="control-action">
-        Operación sobre {application?.user.name ?? user?.displayName}
+        Operación sobre{" "}
+        {application ? applicantLabel(application) : user?.displayName}
       </label>
       <select
         id="control-action"
@@ -246,6 +250,16 @@ export function ControlAction({
             <p className="control-id">
               Registro afectado: <strong>{target}</strong>
             </p>
+            {!!application?.user.emails?.length && (
+              <p>
+                Cuenta afectada:{" "}
+                <strong>
+                  {application.user.emails
+                    .map((identity) => identity.email)
+                    .join(" · ")}
+                </strong>
+              </p>
+            )}
             {(action === "ACTIVATE" || action === "CHANGE_PLAN") && (
               <>
                 <label htmlFor="control-plan">Propuesta de plan</label>
@@ -279,7 +293,7 @@ export function ControlAction({
                   onChange={(event) => setMembership(event.target.value)}
                 >
                   <option value="">
-                    Sin negocio asociado · alta futura pendiente
+                    Sin negocio asociado · preparar un nuevo negocio
                   </option>
                   {application!.memberships
                     ?.filter(

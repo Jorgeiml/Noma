@@ -1,0 +1,140 @@
+.identity-scope.studio-os {
+  --ink: var(--identity-ink);
+  --accent: var(--identity-accent);
+  --accent-hover: var(--identity-hover);
+  background: var(--identity-canvas);
+}
+.identity-scope.studio-os .os-header {
+  background: var(--identity-surface);
+}
+.identity-scope.studio-os
+  :is(button, input, select, textarea, summary, a):focus-visible {
+  outline-color: var(--identity-accent);
+}
+.identity-scope.studio-os .product-navigation button[aria-current="page"] {
+  background: var(--identity-surface);
+}
+.identity-scope .agenda-heading {
+  border-inline-start: 3px solid var(--identity-accent);
+  padding-inline-start: 1rem;
+}
+.identity-scope .agenda-empty {
+  background: var(--identity-surface);
+  border-radius: 1.25rem;
+}
+.identity-scope .agenda-primary {
+  background: var(--identity-accent);
+  border-color: var(--identity-accent);
+}
+.identity-scope .agenda-primary:hover {
+  background: var(--identity-hover);
+}
+.identity-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  vertical-align: middle;
+  color: var(--identity-accent, currentColor);
+}
+.identity-scope .os-context-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.identity-scope .os-context-label .identity-icon {
+  width: 1rem;
+  height: 1rem;
+}
+.identity-scope .identity-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, 120px);
+  align-items: center;
+  gap: 0.8rem;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  background: var(--identity-surface);
+  color: var(--identity-ink);
+  border-radius: 1rem;
+}
+.identity-intro .nomi {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.identity-intro p {
+  margin: 0.35rem 0;
+  overflow-wrap: anywhere;
+}
+.onboard-sector[data-personality] {
+  min-width: 0;
+}
+.onboard-sector[data-personality][aria-pressed="true"] {
+  background: var(--identity-surface);
+  border-color: var(--identity-accent);
+}
+.identity-scope .nomi[data-scene] .nomi-body {
+  animation: none;
+}
+.identity-scope .nomi[data-active="true"][data-scene] .nomi-accessory {
+  animation: identity-gesture var(--identity-motion) ease-out 1;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes identity-gesture {
+  from {
+    transform: rotate(-9deg) translateY(4px);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .identity-scope .nomi[data-scene] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.identity-scope .os-empty {
+  background: var(--identity-surface);
+}
+.onboard-sector[data-personality] {
+  border-inline-start: 3px solid var(--identity-accent);
+}
+.identity-scope .nomi[data-active="true"][data-scene="brush"] .nomi-accessory {
+  animation-name: identity-brush;
+}
+.identity-scope .nomi[data-active="true"][data-scene="weight"] .nomi-accessory {
+  animation-name: identity-lift;
+}
+.identity-scope .nomi[data-active="true"][data-scene="tool"] .nomi-accessory {
+  animation-name: identity-tool;
+}
+@keyframes identity-brush {
+  0%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: translateX(-5px);
+  }
+  65% {
+    transform: translateX(3px);
+  }
+}
+@keyframes identity-lift {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes identity-tool {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+}

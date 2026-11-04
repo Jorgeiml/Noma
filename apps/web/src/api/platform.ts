@@ -11,6 +11,12 @@ export interface OwnerContext {
   role: "OWNER";
 }
 export interface Establishment {
+  countryCode?: string | null;
+  city?: string | null;
+  address?: string | null;
+  businessEmail?: string | null;
+  description?: string | null;
+  beautySubtype?: string | null;
   id: string;
   commercialName: string;
   status: "ACTIVE" | "SUSPENDED";
@@ -31,6 +37,12 @@ export type EstablishmentDraft = Pick<
   | "businessPhone"
   | "websiteUrl"
   | "version"
+  | "countryCode"
+  | "city"
+  | "address"
+  | "businessEmail"
+  | "description"
+  | "beautySubtype"
 >;
 export class ApiError extends Error {
   constructor(
@@ -105,5 +117,15 @@ export function draftOf(value: Establishment): EstablishmentDraft {
     businessPhone: value.businessPhone,
     websiteUrl: value.websiteUrl,
     version: value.version,
+    ...("countryCode" in value
+      ? {
+          countryCode: value.countryCode,
+          city: value.city,
+          address: value.address,
+          businessEmail: value.businessEmail,
+          description: value.description,
+          beautySubtype: value.beautySubtype,
+        }
+      : {}),
   };
 }

@@ -4,6 +4,63 @@ Noma (nombre provisional): plataforma de reservas, recepción y operación de ne
 M1.6 añade la configuración operativa de Equipo (Staff/EQU), sobre el catálogo
 M1.5, el acceso local M1.4 y el entorno reproducible M1.1–M1.3.
 
+## M1.6.6: preparación guiada de negocios Beauty
+
+Ruta privada: `http://localhost:5173/onboarding`. Se ofrece desde `/activacion`
+cuando hay una identidad verificada y una habilitación vigente. El acceso con
+código local no crea negocios mediante este recorrido ni sustituye la sesión comercial.
+
+Para probar con cuentas de desarrollo: registrar/verificar una cuenta cliente,
+elegir una propuesta y solicitar activación. Otro operador autorizado de Noma Control
+debe aprobar la solicitud y autorizar un piloto con vencimiento explícito. Elegir
+«Sin negocio asociado · preparar un nuevo negocio» para una cuenta sin establecimiento,
+o asociar explícitamente su membresía existente. No se permite aprobar la propia
+solicitud ni se registra un pago. No usar cuentas reales como fixtures automatizadas.
+
+El cliente entra en `/activacion`, elige «Preparar mi espacio de trabajo» y recorre:
+sector → negocio → sucursal/horarios → servicios → equipo/recursos → revisión.
+Solo belleza y bienestar permite avanzar; odontología, fitness y automotriz muestran
+su estado de desarrollo. No se cambia el sector de un negocio existente.
+
+El alta nueva exige nombre, país, ciudad, teléfono, correo comercial y zona horaria.
+Dirección física, descripción y subtipo Beauty son opcionales. Para finalizar hacen
+falta una sucursal activa con horario de atención, un servicio activo y un profesional
+activo asociado a una sucursal y un servicio. Los recursos y horarios individuales
+son opcionales. Un profesional no es una cuenta de acceso. Los horarios sugeridos
+solo se guardan al confirmarlos; se reutilizan las validaciones de intervalos de Staff.
+
+El guardado es explícito y PostgreSQL conserva la etapa y las entidades reales.
+Cerrar sesión o cambiar de dispositivo no pierde lo ya guardado. Los campos aún no
+guardados requieren confirmación antes de descartarse. Reintentos usan `requestId`
+estable y una versión; cambiar los datos de un intento o editar una versión antigua
+devuelve conflicto. Negocio, membresía, consumo del piloto y auditoría se crean de
+forma transaccional, sin duplicados ante doble clic o concurrencia.
+
+Los límites se resuelven desde el plan autorizado: sucursales/profesionales registrados
+y membresías activas del panel. Staff conserva esos límites después del onboarding.
+Enterprise requiere condiciones explícitas y no obtiene un límite ilimitado por defecto.
+No hay medición de IA ni cuotas de consumo simuladas. Vencer o suspender el piloto
+bloquea escrituras y conserva los datos. La autorización se comprueba en backend.
+
+Los negocios históricos no se duplican ni se marcan completos automáticamente: al
+seleccionarlos se evalúa la configuración real y se propone la primera etapa pendiente.
+Los campos aditivos ausentes no obligan a rehacer toda la configuración histórica.
+Al terminar se utiliza la selección de membresía y la sesión comercial existentes;
+los datos se editan después desde Negocio, Servicios y Equipo. Control solo consulta
+el inicio/progreso/finalización y su auditoría, sin editar esa configuración.
+
+La migración aditiva `20261031000100_beauty_onboarding` añade seis campos opcionales
+a Establishment y crea BusinessOnboarding y OnboardingOperation. No modifica las ocho
+migraciones históricas. No hay onboarding genérico de workflows ni un duplicado JSON
+de los servicios y del equipo. El proveedor de identidad, login, recuperación,
+sesiones y bootstrap permanecen sin cambios; la integración en Activación es compatible.
+
+`pnpm verify` incluye las pruebas API, frontend y PostgreSQL aislado del recorrido.
+No se habilitan reservas, IA, cobros ni contratación de producción. El adaptador también
+reconoce el contrato existente de suscripción con evidencia externa para preparar
+un negocio ya provisionado; el proveedor de pagos y el alta pagada sin negocio
+todavía requieren su contrato de provisión futuro. No se inventa una suscripción pagada.
+
 ## M1.6.3: identidad comercial y activación
 
 El adaptador implementado utiliza **Auth0 Universal Login por OIDC**, mediante
@@ -1087,14 +1144,14 @@ con el mismo propietario es idempotente. Nunca incluir tokens o contraseñas en 
 o evidencias. Los otros tres roles se asignan por el propietario desde Usuarios y permisos,
 con motivo y confirmación del UUID. No se puede cambiar el propio rol ni el del propietario.
 
-## Decisiones y pilotos
+## Decisiones y pilotos anteriores (M1.6.5)
 
 La decisión de una solicitud pendiente es final en este milestone: aprobar no crea
 un negocio, membresía, suscripción ni pago. Un piloto requiere aprobación previa,
 plan propuesto, motivo y vencimiento futuro de hasta 90 días. Puede vincularse
-explícitamente a una membresía OWNER existente del solicitante. Sin membresía solo
-autoriza el alta futura: **el onboarding de establecimientos aún no está implementado**.
-No se simula una creación ni se inventa una ruta de onboarding.
+explícitamente a una membresía OWNER existente del solicitante. Desde M1.6.6, sin
+membresía autoriza el alta de un único negocio Beauty mediante `/onboarding`.
+No se crea un negocio automáticamente al autorizar el piloto.
 
 El piloto permite suspender, reanudar hasta el vencimiento original, cambiar la
 propuesta de plan o finalizar definitivamente. No se prolonga ni sustituye una
@@ -1133,3 +1190,142 @@ pnpm dev:stop
 Las pruebas de Control usan fixtures identificadas `CONTROL TEST` exclusivamente
 en `beauty_wellness_test`/`bw_test`, con limpieza por identificadores propios, sin
 resets, eliminación de volúmenes ni privilegios para cuentas reales.
+
+## M1.6.7 · Planes y accesos gratuitos
+
+En `/control/usuarios`, busca el correo **verificado**, abre la cuenta y confirma
+su correo e identificador. Un `PLATFORM_OWNER` o `PLATFORM_ADMIN` con autorización
+para operaciones sensibles puede elegir **Conceder acceso gratuito**. También está
+disponible en el detalle de `/control/solicitudes`. No requiere aprobar la solicitud,
+seleccionar antes un plan de interés ni tener ya un establecimiento.
+
+Elige Start, Grow, Scale o Enterprise; modalidad Prueba, Piloto o Cortesía; vencimiento
+explícito y motivo. Confirma el identificador y el plan. El inicio lo fija el servidor
+al guardar. Enterprise exige límites positivos de sucursales, profesionales y usuarios,
+y registra cuotas futuras de WhatsApp/IA sin simular consumo. El formulario sugiere
+30 días. Prueba admite hasta 90 días, piloto 180 y cortesía 366; conceder o extender
+más de 90 días exige el propietario de plataforma. No hay autoactivación de la cuenta
+del operador, permisos por correo ni concesiones para identidades sin verificar.
+
+El cliente recarga `/activacion`, ve el plan gratuito y su vigencia y elige
+**Configurar mi negocio** para entrar a `/onboarding`. Después de completar la
+configuración puede entrar al negocio mediante su membresía existente. No necesita
+tarjeta, checkout ni otra elección de plan. Los límites se comprueban también en
+las escrituras normales de Staff y en la finalización del onboarding.
+
+**Gestionar acceso gratuito** permite extender, suspender, reactivar una suspensión
+vigente o finalizar. Un acceso vencido puede extenderse explícitamente; un registro
+finalizado no se reactiva. Consulta la fecha, modalidad e historial en el detalle
+de la solicitud o en `/control/auditoria`. Las escrituras usan versión, idempotencia,
+confirmación, motivo y auditoría transaccional. Una relación comercial pagada existente
+no se sustituye por una concesión gratuita. Suspender o vencer conserva el negocio.
+
+API: `POST /api/control/users/:id/free-access` concede; `PUT` sobre la misma ruta
+extiende o cambia el estado. La búsqueda de `/api/control/users?q=...` admite prefijo
+de correo verificado. Los identificadores proceden de la cuenta registrada, no de
+un correo enviado como autorización desde React.
+
+Billing se pospuso: no hay módulo de pasarela, ruta `/contratar`, checkout ni webhook
+de pagos en el código activo. La migración ya aplicada `20261031000200_noma_billing`
+se conserva intacta, con sus tablas preparatorias inactivas, para no reescribir el
+historial de PostgreSQL. No habilita cobros ni registra pagos o ingresos.
+
+Validación desde PowerShell: `pnpm verify`, `pnpm dev:local`, `pnpm health`.
+Las pruebas adicionales están en `free-access.integration.spec.ts` y usan solamente
+la base de pruebas. Detén únicamente tu propia instancia con `pnpm dev:stop`.
+
+## M1.7 · Agenda y reservas Beauty
+
+Con una membresía operativa y un acceso vigente, abre `/app/agenda` (también es el
+destino de `/app`). En **Servicios** indica si cada servicio se presta con un
+profesional o solo mediante espacio/equipo. Los servicios existentes conservan la
+modalidad profesional. En **Equipo** configura sucursal, asociaciones, horarios y,
+cuando corresponda, espacios/equipos y las unidades que usa cada servicio.
+
+**Nueva cita** conserva la sucursal, profesional y fecha de la agenda. Elige servicio,
+consulta horas, selecciona cliente o créalo en el mismo panel y registra teléfono,
+presencial o interno. El correo del cliente es opcional; no necesita una cuenta Noma.
+No se fusionan clientes por nombre/teléfono. Se normalizan espacios, guiones y
+paréntesis del teléfono; no se adivina su país. La API devuelve posibles duplicados
+en el alta independiente para revisión humana.
+
+La agenda ofrece día/semana, filtros, paginación, actualización explícita y detalle
+contextual. En móvil la semana permite escoger un día. Las filas muestran inicio,
+fin y duración reales; no representan una escala de tiempo ficticia. No hay polling
+ni se anuncia información en vivo. La búsqueda de clientes muestra hasta 30
+coincidencias; afina por nombre o teléfono cuando sea necesario.
+
+Crear deja la cita **por confirmar**. Puede confirmarse o cancelarse; una confirmada
+puede completarse al terminar o marcarse como no asistida al comenzar. Cancelar
+requiere motivo y libera capacidad. Reagendar exige motivo, conserva ID, cliente,
+canal, duración y precio original; cambia sucursal/profesional solo con asociaciones
+y horarios válidos. Una operación fallida conserva la reserva y sus asignaciones.
+Los estados completada/cancelada/no asistió son terminales. Para conservar historia,
+los servicios/profesionales con citas se desactivan en lugar de eliminarse.
+
+### Contrato privado
+
+Todas las rutas dependen de identidad, membresía y autorización comercial vigentes;
+solo BEAUTY tiene esta capacidad implementada. El tenant procede de la sesión.
+
+| Ruta bajo `/api/appointments` | Operación                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `GET /configuration`          | Servicios, sucursales y profesionales activos                                           |
+| `GET /availability`           | `branchId`, `serviceId`, `date`, profesional opcional, `step`, `excludeId` al reagendar |
+| `GET /agenda`                 | Fecha local, `days=1\|7`, filtros opcionales y página                                   |
+| `GET /:id`                    | Detalle, historial y hora del servidor                                                  |
+| `POST /`                      | Reserva con `requestId`, referencias, `startsAt` UTC y cliente nuevo o existente        |
+| `PATCH /:id/reschedule`       | Nuevo intervalo, versión y motivo                                                       |
+| `PATCH /:id/state`            | Estado, versión y motivo de cancelación                                                 |
+| `GET /customers`              | Búsqueda `q` y página; 30 por página                                                    |
+| `POST /customers`             | Alta independiente con `requestId` y `customer`                                         |
+
+Las escrituras requieren UUID de idempotencia. Un reintento idéntico devuelve el
+resultado original; reutilizar la clave con otros datos devuelve 409. Agenda:
+200 citas por página; disponibilidad: un día y hasta 2000 opciones; configuración:
+hasta 100 sucursales y 1000 servicios/profesionales. Horizonte técnico de nuevas
+reservas: 366 días; duración máxima del motor: siete días. No es una cuota comercial
+de reservas ni un cobro. La granularidad de inicio (5/10/15/20/30/60 minutos) no cambia
+la duración del servicio. La API de creación revalida el instante, aunque haya sido
+consultado segundos antes.
+
+### Transacciones, capacidad y zonas horarias
+
+`AppointmentsModule` concentra disponibilidad, asignación, estados, clientes y
+auditoría operativa (`AppointmentEvent`, separada de `PlatformAudit`). Las escrituras
+usan una transacción Read Committed con bloqueos compartidos de configuración y
+bloqueos advisory exclusivos por profesional/recurso en orden estable. Coordinan
+instancias distintas de NestJS. Las operaciones de configuración existentes usan
+el bloqueo exclusivo del tenant. La idempotencia se persiste con la operación.
+
+PostgreSQL añade `btree_gist` y una exclusión `[inicio, fin)` por profesional/tenant,
+incluso entre sucursales. Para recursos de varias unidades se calcula el pico real
+de ocupación bajo el bloqueo del recurso; no se suman citas consecutivas como si se
+solaparan. Recursos/profesionales independientes pueden operar simultáneamente.
+Staff impide bajar capacidad por debajo de las citas futuras existentes.
+
+Se guardan instantes UTC (`timestamptz`) y zona IANA de la sucursal como contexto.
+Cada horario se interpreta en su propia zona configurada. Se recorren minutos
+reales: las horas inexistentes no se ofrecen; las repetidas mantienen instantes
+UTC distintos y su offset visible. La duración mide minutos transcurridos reales.
+Los horarios siguen siendo tramos locales dentro de un día; `24:00` permite cerrar
+ese día y continuar desde `00:00` del siguiente. Los tramos deben estar configurados
+en ambos días. No se inventan horarios cuando falta configuración.
+
+La migración aditiva `20261101000100_appointments` crea clientes, citas, asignaciones,
+eventos e idempotencia y añade `ServiceOffering.bookingMode`. No modifica migraciones
+históricas ni crea datos de ejemplo en desarrollo. No se integran pagos, canales
+WhatsApp/online, IA ni notificaciones. Los códigos futuros de canal están reservados,
+pero tanto DTO como PostgreSQL aceptan únicamente PHONE, IN_PERSON e INTERNAL.
+
+```powershell
+pnpm db:migrate
+pnpm dev:local
+# Abre http://localhost:5173/app/agenda con tu sesión autorizada
+pnpm health
+pnpm verify
+```
+
+Las pruebas de concurrencia están en `appointments.integration.spec.ts` y usan dos
+instancias NestJS contra PostgreSQL de pruebas. Las de calendario civil/DST están
+en `appointment-time.spec.ts`; las de UI en `appointments/Agenda.test.tsx`.

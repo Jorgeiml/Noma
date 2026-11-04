@@ -151,6 +151,291 @@
   font-size: 0.72rem;
   color: var(--n-muted);
 }
+.noma-account-page {
+  max-width: 1320px;
+  display: block;
+  padding-block: 36px 48px;
+}
+.noma-account-page > .noma-access-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.noma-account-celebration {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(180px, 0.8fr);
+  gap: 32px;
+  align-items: center;
+  padding: clamp(24px, 4vw, 56px);
+  border: 1px solid #e8d6ba;
+  border-radius: 24px;
+  background: #fff2d9;
+  overflow: hidden;
+}
+.noma-account-celebration h1 {
+  font-size: clamp(2rem, 3.8vw, 3.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+  margin: 20px 0;
+  max-width: 680px;
+}
+.noma-account-celebration p:not(.noma-kicker) {
+  max-width: 490px;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #665342;
+}
+.noma-account-celebration .noma-kicker {
+  color: #7b4a21;
+  font-size: 0.65rem;
+}
+.noma-account-character {
+  position: relative;
+  align-self: center;
+  max-width: 290px;
+  justify-self: center;
+}
+.noma-account-character > span {
+  display: block;
+  margin: -12px auto 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #794019;
+  font-weight: 650;
+  transform: rotate(-5deg);
+}
+.nomi[data-mood="energized"] .nomi-eyes,
+.nomi[data-mood="energized"] .nomi-smile {
+  display: none;
+}
+.nomi[data-mood="energized"] .nomi-closed-eyes {
+  display: block;
+}
+.nomi[data-mood="energized"] .nomi-hand {
+  transform: rotate(-30deg);
+}
+.nomi[data-mood="energized"] .nomi-arm-left {
+  transform: rotate(12deg);
+  transform-origin: 150px 345px;
+}
+.nomi[data-mood="energized"][data-active="true"] .nomi-body {
+  animation: noma-energy-bounce 2400ms ease-in-out 3;
+}
+.nomi[data-mood="energized"][data-active="true"] .nomi-energy {
+  transform-origin: 248px 303px;
+  animation: noma-energy-pulse 2400ms ease-in-out 3;
+}
+@keyframes noma-energy-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  45% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+@keyframes noma-energy-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.96);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+.noma-account-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  gap: 24px;
+  padding: 28px 0;
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--n-line);
+}
+.noma-account-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+}
+.noma-account-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid var(--n-line);
+  border-radius: 50%;
+  font-size: 0.7rem;
+}
+.noma-account-steps li[data-complete="true"] > span {
+  background: #e7eddf;
+  color: #365136;
+  border-color: #c9d7c0;
+}
+.noma-account-steps small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--n-muted);
+  margin-top: 5px;
+}
+.noma-account-plan-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.75rem;
+  padding-top: 12px;
+}
+.noma-account-plans > .noma-pricing {
+  margin-top: 36px;
+}
+.noma-account-plans .noma-plan h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+.noma-account-plans .noma-plan[data-selected="true"] {
+  border-color: #a94421;
+  box-shadow: 0 0 0 1px #a94421;
+}
+.noma-account-plans .noma-plan-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 24px;
+  padding: 12px 14px;
+  border: 1px solid var(--n-line);
+  border-radius: 8px;
+  background: #fffef9;
+  color: var(--n-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.noma-account-plans .noma-plan-select[aria-pressed="true"] {
+  background: #a94421;
+  border-color: #a94421;
+  color: white;
+}
+.noma-account-plans .noma-plan-select:focus-visible {
+  outline: 3px solid #a94421;
+  outline-offset: 4px;
+}
+.noma-account-plans .noma-plan-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.noma-account-plan-footer p {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+}
+.noma-account-plan-footer a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.noma-account-page :is(.noma-account-faq, .noma-account-pilot) {
+  border-top: 1px solid var(--n-line);
+  padding: 18px 0;
+  font-size: 0.8rem;
+}
+.noma-account-page :is(.noma-account-faq, .noma-account-pilot) > summary {
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.noma-account-page
+  :is(.noma-account-faq, .noma-account-pilot)
+  > summary:focus-visible {
+  outline: 3px solid #a94421;
+  outline-offset: 4px;
+}
+.noma-account-page :is(.noma-account-faq, .noma-account-pilot) p {
+  max-width: 720px;
+  line-height: 1.8;
+}
+.noma-account-ready {
+  padding: 24px 0;
+}
+.noma-account-ready .noma-free-welcome-character {
+  width: 120px;
+  height: auto;
+  float: right;
+  margin: 0 0 16px 24px;
+}
+@media (max-width: 420px) {
+  .noma-account-ready .noma-free-welcome-character {
+    width: 90px;
+    float: none;
+    margin: 0 0 20px;
+  }
+}
+.noma-account-page .noma-account-ready h1 {
+  font-size: 2.2rem;
+  letter-spacing: -0.04em;
+}
+@media (max-width: 760px) {
+  .noma-account-celebration {
+    grid-template-columns: minmax(0, 1fr) 130px;
+    gap: 12px;
+    padding: 24px;
+  }
+  .noma-account-celebration h1 {
+    font-size: 2rem;
+  }
+  .noma-account-celebration p:not(.noma-kicker) {
+    font-size: 0.85rem;
+  }
+  .noma-account-character > span {
+    font-size: 0.65rem;
+  }
+  .noma-account-steps {
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .noma-account-steps li {
+    align-items: start;
+    flex-direction: column;
+  }
+  .noma-account-steps small {
+    font-size: 0.65rem;
+  }
+}
+@media (max-width: 420px) {
+  .noma-account-celebration {
+    grid-template-columns: 1fr;
+  }
+  .noma-account-character {
+    width: 160px;
+    grid-row: 1;
+  }
+  .noma-account-celebration h1 {
+    font-size: 2rem;
+  }
+  .noma-account-steps {
+    grid-template-columns: 1fr;
+  }
+  .noma-account-steps li {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .noma-account-page *,
+  .noma-account-page *::before,
+  .noma-account-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
 @media (max-width: 760px) {
   .noma-access {
     grid-template-columns: minmax(0, 1fr);
@@ -166,4 +451,72 @@
   .noma-access-panel {
     padding: 24px 20px;
   }
+}
+
+.noma-activation-header {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding-inline: clamp(20px, 5vw, 72px);
+  border-bottom: 1px solid var(--n-line);
+}
+.noma-activation-compact {
+  max-width: 640px;
+  min-height: auto;
+  padding: clamp(32px, 8vh, 88px) 16px;
+}
+.noma-activation-compact > .noma-access-panel {
+  padding: clamp(20px, 6vw, 44px);
+  border: 1px solid var(--n-line);
+  border-radius: 20px;
+  background: #fffef9;
+}
+.noma-activation-compact .noma-account-ready {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 0;
+}
+.noma-activation-compact .noma-account-ready h1 {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1.1;
+}
+.noma-activation-compact .noma-account-ready p {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.noma-activation-compact .noma-account-ready .noma-free-welcome-character {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  width: clamp(52px, 12vw, 88px);
+  margin: 0;
+}
+.noma-onboarding-invitation {
+  margin: 20px 0;
+}
+.noma-activation-details {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 1px solid var(--n-line);
+  color: var(--n-muted);
+  overflow-wrap: anywhere;
+}
+.noma-activation-details summary {
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+  font-size: 0.85rem;
+}
+.noma-activation-details a {
+  text-decoration: underline;
+}
+.noma-activation-details summary:focus-visible {
+  outline: 3px solid #a94421;
+  outline-offset: 3px;
 }

@@ -22,11 +22,12 @@ describe("Guard de capacidades después de autorización", () => {
       expect(() => guard.canActivate(context(vertical))).toThrow();
     },
   );
-  it("rechaza reservas aunque el sector sea BEAUTY", () => {
+  it("permite reservas únicamente para BEAUTY en M1.7", () => {
     jest
       .spyOn(reflector, "getAllAndOverride")
       .mockReturnValue(["individualBookings"] satisfies Capability[]);
-    expect(() => guard.canActivate(context("BEAUTY"))).toThrow("todavía");
+    expect(guard.canActivate(context("BEAUTY"))).toBe(true);
+    expect(() => guard.canActivate(context("DENTAL"))).toThrow("todavía");
   });
   it("autoriza solo capacidades implementadas", () => {
     jest

@@ -15,6 +15,11 @@ import {
   type ControlPage,
 } from "../../../api/src/control/control.contract";
 import { ControlAction } from "./ControlAction";
+import { FreeAccess } from "./FreeAccess";
+import {
+  applicantLabel,
+  applicationAccessLabel,
+} from "./application-presentation";
 import {
   controlApi,
   ControlError,
@@ -35,7 +40,7 @@ const pageNames: Record<ControlPage, string> = {
   inicio: "Pendientes de hoy",
   solicitudes: "Solicitudes",
   negocios: "Negocios",
-  suscripciones: "Planes y pilotos",
+  suscripciones: "Planes y accesos",
   usuarios: "Usuarios y permisos",
   auditoria: "Auditoría",
 };
@@ -64,6 +69,11 @@ const actions: Record<string, string> = {
   "platformAccess.granted": "Permiso interno asignado",
   "platformAccess.revoked": "Permiso interno revocado",
   "platformOwner.bootstrapped": "Propietario de plataforma autorizado",
+  "onboarding.started": "Preparación del negocio iniciada",
+  "onboarding.business_created":
+    "Negocio creado mediante preparación autorizada",
+  "onboarding.completed": "Preparación del negocio completada",
+  "membership.owner_linked": "Propietario del negocio vinculado",
   "control.request.rejected": "Solicitud de Control rechazada",
 };
 const statusOptions: Partial<Record<ControlPage, string[]>> = {
@@ -421,12 +431,15 @@ export default function ControlPanel() {
       open: (() => void) | undefined;
     if (page === "solicitudes") {
       const value = item as Application;
-      title = value.user.name;
-      subtitle = value.user.verified
-        ? "Identidad vinculada y verificada"
-        : "Identidad sin verificar";
+      title = applicantLabel(value);
+      subtitle = [
+        value.user.emails?.map((identity) => identity.email).join(" · "),
+        value.user.verified ? "Correo verificado" : "Correo sin verificar",
+      ]
+        .filter(Boolean)
+        .join(" · ");
       fields = [
-        ["Solicitud", <Badge value={value.state} />],
+        ["Acceso", applicationAccessLabel(value)],
         [
           "Revisión",
           <Badge value={value.platformReview?.decision ?? "PENDING"} />,
@@ -457,11 +470,13 @@ export default function ControlPanel() {
       title =
         value.establishment?.commercialName ??
         value.membership?.establishment.commercialName ??
+        value.application?.user.externalIdentities?.find((e) => e.verifiedAt)
+          ?.email ??
         value.application?.user.displayName ??
         "Relación comercial";
       subtitle =
         value.kind === "manual"
-          ? "Piloto manual · sin pago registrado"
+          ? `GRATUITA · ${{ TEST: "Prueba", PILOT: "Piloto", COURTESY: "Cortesía" }[value.mode ?? "PILOT"]} · sin pago registrado`
           : stateLabel(value.evidenceSource);
       fields = [
         ["Plan", value.plan],
@@ -478,7 +493,17 @@ export default function ControlPanel() {
           setSelected({ kind: "application", id: value.applicationId });
     } else if (page === "usuarios") {
       const value = item as User;
-      title = value.displayName;
+      title = applicantLabel({
+        user: {
+          id: value.id,
+          name: value.displayName,
+          verified: value.externalIdentities.some((e) => e.verifiedAt),
+          emails: value.externalIdentities.map((e) => ({
+            email: e.email,
+            verified: !!e.verifiedAt,
+          })),
+        },
+      });
       subtitle = value.externalIdentities.some(
         (identity) => identity.verifiedAt,
       )
@@ -677,7 +702,13 @@ export default function ControlPanel() {
                       <label htmlFor="control-search">
                         {page === "auditoria"
                           ? "ID de actor o recurso"
-                          : "Buscar por inicio del nombre o ID"}
+                          : [
+                                "usuarios",
+                                "solicitudes",
+                                "suscripciones",
+                              ].includes(page)
+                            ? "Buscar por nombre, correo verificado o ID"
+                            : "Buscar por inicio del nombre o ID"}
                       </label>
                       <input
                         id="control-search"
@@ -872,8 +903,37 @@ export default function ControlPanel() {
                                 const app = detail as Application;
                                 return (
                                   <>
-                                    <h2>{app.user.name}</h2>
-                                    <p className="control-id">{app.id}</p>
+                                    <h2>{applicantLabel(app)}</h2>
+                                    <p className="control-id">
+                                      Solicitud: {app.id}
+                                    </p>
+                                    <h3>Identidad que solicita acceso</h3>
+                                    {app.user.emails?.length ? (
+                                      <ul className="control-plain-list">
+                                        {app.user.emails.map((identity) => (
+                                          <li key={identity.email}>
+                                            <strong>{identity.email}</strong>
+                                            <small>
+                                              {identity.verified
+                                                ? "Correo verificado"
+                                                : "Correo sin verificar"}
+                                            </small>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="control-warning">
+                                        No hay un correo vinculado disponible.
+                                        Comprueba el usuario antes de autorizar
+                                        una operación.
+                                      </p>
+                                    )}
+                                    <p className="control-id">
+                                      Usuario interno: {app.user.id}
+                                      {app.user.id === context.user.id
+                                        ? " · Esta es tu propia cuenta"
+                                        : ""}
+                                    </p>
                                     <Pairs
                                       values={[
                                         [
@@ -882,7 +942,7 @@ export default function ControlPanel() {
                                             ? "Verificada"
                                             : "Sin verificar",
                                         ],
-                                        ["Solicitud", stateLabel(app.state)],
+                                        ["Acceso", applicationAccessLabel(app)],
                                         [
                                           "Preferencia",
                                           app.selectedPlan ?? "Sin elegir",
@@ -896,6 +956,14 @@ export default function ControlPanel() {
                                         ],
                                         ["Registro", dateLabel(app.createdAt)],
                                         [
+                                          "Configuración inicial",
+                                          app.onboarding
+                                            ? app.onboarding.completedAt
+                                              ? `Completada · ${dateLabel(app.onboarding.completedAt)}`
+                                              : `En progreso · etapa ${app.onboarding.step + 1} de 6`
+                                            : "Sin preparación guiada registrada",
+                                        ],
+                                        [
                                           "Piloto",
                                           app.manualActivation
                                             ? `${stateLabel(app.manualActivation.effectiveState)} · vence ${dateLabel(app.manualActivation.expiresAt)}`
@@ -908,6 +976,45 @@ export default function ControlPanel() {
                                         Identidad sintética de pruebas locales.
                                       </p>
                                     )}
+                                    {app.platformReview?.decision ===
+                                      "APPROVED" &&
+                                      !app.manualActivation &&
+                                      app.subscription?.state !== "ACTIVE" && (
+                                        <div
+                                          className="control-warning"
+                                          role="status"
+                                        >
+                                          <strong>
+                                            Solicitud aprobada. Falta habilitar
+                                            el acceso.
+                                          </strong>
+                                          <p>
+                                            {app.user.id === context.user.id
+                                              ? "Esta solicitud es de tu propia cuenta; otro operador autorizado debe habilitarla."
+                                              : context.permissions.includes(
+                                                    "subscriptions.manage",
+                                                  ) &&
+                                                  context.sensitiveOperationsAvailable
+                                                ? "Elige «Conceder acceso gratuito», define el plan y su vencimiento, y confirma la cuenta. No se necesita otra aprobación."
+                                                : "Un operador con permisos de activación debe autorizar el piloto y definir su plan y vencimiento."}
+                                          </p>
+                                          <p>
+                                            La aprobación y la autorización
+                                            temporal son pasos separados.
+                                            Todavía no se ha habilitado el
+                                            onboarding.
+                                          </p>
+                                        </div>
+                                      )}
+                                    <FreeAccess
+                                      key={`free-${app.user.id}`}
+                                      context={context}
+                                      userId={app.user.id}
+                                      emails={app.user.emails ?? []}
+                                      memberships={app.memberships ?? []}
+                                      grant={app.manualActivation}
+                                      onDone={done}
+                                    />
                                     <ControlAction
                                       key={app.id}
                                       context={context}
@@ -962,6 +1069,14 @@ export default function ControlPanel() {
                                         ],
                                         ["Estado", stateLabel(business.status)],
                                         [
+                                          "Configuración inicial",
+                                          business.onboarding
+                                            ? business.onboarding.completedAt
+                                              ? `Completada · ${dateLabel(business.onboarding.completedAt)}`
+                                              : `En progreso · etapa ${business.onboarding.step + 1} de 6`
+                                            : "Sin preparación guiada registrada",
+                                        ],
+                                        [
                                           "Registro",
                                           dateLabel(business.createdAt),
                                         ],
@@ -1010,7 +1125,24 @@ export default function ControlPanel() {
                                 const user = detail as User;
                                 return (
                                   <>
-                                    <h2>{user.displayName}</h2>
+                                    <h2>
+                                      {applicantLabel({
+                                        user: {
+                                          id: user.id,
+                                          name: user.displayName,
+                                          verified:
+                                            user.externalIdentities.some(
+                                              (e) => e.verifiedAt,
+                                            ),
+                                          emails: user.externalIdentities.map(
+                                            (e) => ({
+                                              email: e.email,
+                                              verified: !!e.verifiedAt,
+                                            }),
+                                          ),
+                                        },
+                                      })}
+                                    </h2>
                                     <p className="control-id">{user.id}</p>
                                     <h3>Identidades vinculadas</h3>
                                     <ul className="control-plain-list">
@@ -1044,12 +1176,48 @@ export default function ControlPanel() {
                                         </li>
                                       ))}
                                     </ul>
+                                    <p className="control-muted">
+                                      Estado comercial:{" "}
+                                      {user.commercialApplication?.subscription
+                                        ? `${user.commercialApplication.subscription.plan} · ${stateLabel(user.commercialApplication.subscription.state)}`
+                                        : "Sin suscripción pagada registrada"}
+                                    </p>
+                                    <FreeAccess
+                                      key={`free-${user.id}`}
+                                      context={context}
+                                      userId={user.id}
+                                      emails={user.externalIdentities.map(
+                                        (e) => ({
+                                          email: e.email,
+                                          verified: !!e.verifiedAt,
+                                        }),
+                                      )}
+                                      memberships={user.memberships}
+                                      grant={
+                                        user.commercialApplication
+                                          ?.manualActivation
+                                      }
+                                      onDone={done}
+                                    />
                                     <ControlAction
                                       key={user.id}
                                       context={context}
                                       user={user}
                                       onDone={done}
                                     />
+                                    {user.commercialApplication && (
+                                      <button
+                                        className="control-secondary"
+                                        onClick={() =>
+                                          setSelected({
+                                            kind: "application",
+                                            id: user.commercialApplication!.id,
+                                          })
+                                        }
+                                      >
+                                        Ver historial de acceso
+                                      </button>
+                                    )}
                                   </>
                                 );
                               })()}

@@ -4,8 +4,11 @@ export type IdentityPage =
   "login" | "signup" | "verify" | "recover" | "activation" | "denied";
 export interface CommercialAccount {
   manualActivation?: {
+    source?: "MANUAL";
+    mode?: "TEST" | "PILOT" | "COURTESY";
+    startsAt?: string;
     kind: "MANUAL_PILOT";
-    state: "ACTIVE" | "EXPIRED" | "SUSPENDED" | "REVOKED";
+    state: "ACTIVE" | "EXPIRED" | "SUSPENDED" | "REVOKED" | "SCHEDULED";
     plan: PlanId;
     expiresAt: string;
     accessAuthorized: boolean;

@@ -54,6 +54,12 @@ model Establishment {
   businessPhone  String?             @db.VarChar(32)
   websiteUrl     String?             @db.VarChar(250)
   logoDataUrl    String?             @db.Text
+  countryCode    String?             @db.Char(2)
+  city           String?             @db.VarChar(100)
+  address        String?             @db.VarChar(250)
+  businessEmail  String?             @db.VarChar(320)
+  description    String?             @db.VarChar(1000)
+  beautySubtype  String?             @db.VarChar(40)
   version        Int                 @default(0)
   createdAt      DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime            @updatedAt @db.Timestamptz(3)
@@ -62,6 +68,9 @@ model Establishment {
   branches       Branch[]
   professionals  Professional[]
   commercialSubscription CommercialSubscription?
+  onboarding BusinessOnboarding?
+  appointments Appointment[]
+  appointmentCustomers AppointmentCustomer[]
   @@index([createdAt, id])
 }
 
@@ -74,6 +83,9 @@ model InternalUser {
   commercialApplication CommercialApplication?
   platformAccess PlatformAccess?
   controlAudit PlatformAudit[]
+  appointments Appointment[]
+  appointmentEvents AppointmentEvent[]
+  appointmentRequests AppointmentRequest[]
   @@index([createdAt, id])
 }
 
@@ -131,6 +143,7 @@ enum CommercialSubscriptionState {
 enum CommercialEvidenceSource {
   LOCAL_SYNTHETIC
   VERIFIED_EXTERNAL
+  KUSHKI_SANDBOX
 }
 
 // No automatic linking by email. The provider's stable (issuer, subject) is the key.
@@ -190,23 +203,65 @@ model CommercialApplication {
   subscription CommercialSubscription?
   platformReview ApplicationReview?
   manualActivation ManualActivation?
+  onboarding BusinessOnboarding?
+  onboardingOperations OnboardingOperation[]
+  billingOrders BillingOrder[]
   @@index([createdAt, id])
   @@index([state, createdAt])
+}
+
+// Progress only. Business data remains in Establishment, Offering and Staff.
+model BusinessOnboarding {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @unique @db.Uuid
+  establishmentId String? @unique @db.Uuid
+  selectedVertical BusinessVertical?
+  step Int @default(0)
+  version Int @default(0)
+  createdBusiness Boolean @default(false)
+  completedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  establishment Establishment? @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+}
+
+// One durable idempotency key per authorized application and operation.
+model OnboardingOperation {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @db.Uuid
+  requestId String @db.Uuid
+  action String @db.VarChar(40)
+  inputHash String @db.Char(64)
+  resultId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  @@unique([applicationId, requestId])
 }
 
 model CommercialSubscription {
   id String @id @default(uuid()) @db.Uuid
   applicationId String @unique @db.Uuid
-  establishmentId String @unique @db.Uuid
+  establishmentId String? @unique @db.Uuid
   plan CommercialPlan
   state CommercialSubscriptionState @default(ACTIVATION_PENDING)
   evidenceSource CommercialEvidenceSource
   evidenceRef String? @db.VarChar(250)
   activatedAt DateTime? @db.Timestamptz(3)
+  billingManaged Boolean @default(false)
+  providerSubscriptionId String? @unique @db.VarChar(250)
+  currentPeriodStart DateTime? @db.Timestamptz(3)
+  currentPeriodEnd DateTime? @db.Timestamptz(3)
+  nextChargeAt DateTime? @db.Timestamptz(3)
+  cancelAtPeriodEnd Boolean @default(false)
+  billingPhase BillingPhase @default(INITIAL_PENDING)
+  version Int @default(0)
+  payments BillingPayment[]
+  requests BillingRequest[]
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   application CommercialApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  establishment Establishment @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
+  establishment Establishment? @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   @@index([createdAt, id])
 }
 
@@ -237,9 +292,117 @@ model ServiceOffering {
   establishment         Establishment         @relation(fields: [establishmentId], references: [id], onDelete: Restrict)
   professionals         ProfessionalService[]
   resourceSets          ServiceResourceSet[]
+  bookingMode           BookingMode @default(PROFESSIONAL)
+  appointments          Appointment[]
 
   @@unique([establishmentId, id])
   @@index([establishmentId, active, category])
+}
+
+enum BookingMode {
+  PROFESSIONAL
+  RESOURCE_ONLY
+}
+
+enum AppointmentState {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentChannel {
+  PHONE
+  IN_PERSON
+  INTERNAL
+  ONLINE
+  WHATSAPP
+}
+
+model AppointmentCustomer {
+  id String @id @default(uuid()) @db.Uuid
+  establishmentId String @db.Uuid
+  name String @db.VarChar(120)
+  phone String? @db.VarChar(32)
+  email String? @db.VarChar(320)
+  note String? @db.VarChar(500)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  appointments Appointment[]
+  establishment Establishment @relation(fields:[establishmentId],references:[id],onDelete:Restrict)
+  @@unique([establishmentId, id])
+  @@index([establishmentId, name, id])
+  @@index([establishmentId, phone])
+}
+
+model Appointment {
+  id String @id @default(uuid()) @db.Uuid
+  establishmentId String @db.Uuid
+  branchId String @db.Uuid
+  serviceId String @db.Uuid
+  professionalId String? @db.Uuid
+  customerId String @db.Uuid
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  timeZone String @db.VarChar(64)
+  durationMinutes Int
+  snapshot Json @db.JsonB
+  state AppointmentState @default(PENDING_CONFIRMATION)
+  channel AppointmentChannel
+  note String? @db.VarChar(1000)
+  actorUserId String @db.Uuid
+  version Int @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  customer AppointmentCustomer @relation(fields:[establishmentId, customerId], references:[establishmentId,id],onDelete:Restrict)
+  establishment Establishment @relation(fields:[establishmentId],references:[id],onDelete:Restrict)
+  branch Branch @relation(fields:[establishmentId,branchId],references:[establishmentId,id],onDelete:Restrict)
+  service ServiceOffering @relation(fields:[establishmentId,serviceId],references:[establishmentId,id],onDelete:Restrict)
+  professional Professional? @relation(fields:[establishmentId,professionalId],references:[establishmentId,id],onDelete:Restrict)
+  actor InternalUser @relation(fields:[actorUserId],references:[id],onDelete:Restrict)
+  allocations AppointmentResource[]
+  events AppointmentEvent[]
+  @@unique([establishmentId,id])
+  @@index([establishmentId, startsAt, id])
+  @@index([establishmentId, branchId, startsAt])
+  @@index([establishmentId, professionalId, startsAt])
+}
+
+model AppointmentResource {
+  appointmentId String @db.Uuid
+  establishmentId String @db.Uuid
+  resourceId String @db.Uuid
+  units Int
+  appointment Appointment @relation(fields:[establishmentId,appointmentId], references:[establishmentId,id],onDelete:Restrict)
+  resource PhysicalResource @relation(fields:[establishmentId,resourceId],references:[establishmentId,id],onDelete:Restrict)
+  @@id([appointmentId,resourceId])
+  @@index([establishmentId,resourceId])
+}
+
+model AppointmentEvent {
+  id String @id @default(uuid()) @db.Uuid
+  appointmentId String @db.Uuid
+  establishmentId String @db.Uuid
+  actorUserId String @db.Uuid
+  type String @db.VarChar(32)
+  before Json? @db.JsonB
+  after Json @db.JsonB
+  reason String? @db.VarChar(500)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  appointment Appointment @relation(fields:[establishmentId,appointmentId], references:[establishmentId,id],onDelete:Restrict)
+  actor InternalUser @relation(fields:[actorUserId],references:[id],onDelete:Restrict)
+  @@index([establishmentId,appointmentId,createdAt])
+}
+
+model AppointmentRequest {
+  establishmentId String @db.Uuid
+  requestId String @db.Uuid
+  actorUserId String @db.Uuid
+  inputHash String @db.Char(64)
+  result Json @db.JsonB
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  actor InternalUser @relation(fields:[actorUserId],references:[id],onDelete:Restrict)
+  @@id([establishmentId,requestId])
 }
 
 model Branch {
@@ -258,6 +421,7 @@ model Branch {
   resources       PhysicalResource[]
   schedules       WorkSchedule[]
   resourceSets    ServiceResourceSet[]
+  appointments   Appointment[]
 
   @@unique([establishmentId, id])
 }
@@ -275,6 +439,7 @@ model Professional {
   branches        ProfessionalBranch[]
   services        ProfessionalService[]
   schedules       WorkSchedule[]
+  appointments    Appointment[]
 
   @@unique([establishmentId, id])
 }
@@ -314,7 +479,9 @@ model PhysicalResource {
   updatedAt       DateTime                     @updatedAt @db.Timestamptz(3)
   branch          Branch                       @relation(fields: [establishmentId, branchId], references: [establishmentId, id], onDelete: Restrict)
   requirements    ServiceResourceRequirement[]
+  appointments    AppointmentResource[]
 
+  @@unique([establishmentId, id])
   @@unique([establishmentId, branchId, id])
 }
 
@@ -404,6 +571,15 @@ enum ManualActivationState {
   SUSPENDED
   REVOKED
 }
+enum FreeAccessMode {
+  TEST
+  PILOT
+  COURTESY
+}
+enum ManualAuthorizationBasis {
+  LEGACY_REVIEWED
+  DIRECT_GRANT
+}
 model PlatformAccess {
   userId String @id @db.Uuid
   role PlatformRole
@@ -430,6 +606,14 @@ model ManualActivation {
   membershipId String? @unique @db.Uuid
   plan CommercialPlan
   state ManualActivationState @default(ACTIVE)
+  mode FreeAccessMode @default(PILOT)
+  authorizationBasis ManualAuthorizationBasis @default(LEGACY_REVIEWED)
+  startsAt DateTime @default(now()) @db.Timestamptz(3)
+  branchLimit Int?
+  professionalLimit Int?
+  userLimit Int?
+  whatsappLimit Int?
+  aiSessionLimit Int?
   expiresAt DateTime @db.Timestamptz(3)
   actorUserId String @db.Uuid
   reason String @db.VarChar(500)
@@ -456,4 +640,98 @@ model PlatformAudit {
   @@unique([actorUserId, requestId])
   @@index([createdAt, id])
   @@index([resourceType, resourceId, createdAt])
+}
+
+enum BillingPeriod {
+  MONTHLY
+  ANNUAL
+}
+enum BillingPhase {
+  INITIAL_PENDING
+  ACTIVE
+  RENEWAL_PENDING
+  PAYMENT_FAILED
+  GRACE
+  SUSPENDED
+  CANCEL_SCHEDULED
+  CANCELLED
+  ENDED
+}
+enum BillingOrderState {
+  QUOTED
+  CHECKOUT_PENDING
+  PAYMENT_PENDING
+  PAID
+  FAILED
+  CANCELLED
+  RECONCILIATION_REQUIRED
+}
+// Immutable server-priced quote and consent. Never cardholder data.
+model BillingOrder {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @db.Uuid
+  requestId String @db.Uuid
+  inputHash String @db.Char(64)
+  plan CommercialPlan
+  period BillingPeriod
+  state BillingOrderState @default(QUOTED)
+  currency String @default("USD") @db.Char(3)
+  baseMinor Int
+  discountMinor Int @default(0)
+  taxBasisPoints Int
+  taxMinor Int
+  totalMinor Int
+  taxPolicyRef String @db.VarChar(250)
+  termsVersion String @db.VarChar(100)
+  termsUrl String @db.VarChar(500)
+  cancellationText String @db.VarChar(1000)
+  consentAt DateTime? @db.Timestamptz(3)
+  renewalConsent Boolean @default(false)
+  sandbox Boolean @default(true)
+  expiresAt DateTime @db.Timestamptz(3)
+  providerLinkRef String? @unique @db.VarChar(250)
+  checkoutUrl String? @db.VarChar(500)
+  providerSubscriptionId String? @unique @db.VarChar(250)
+  providerRequestStartedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  application CommercialApplication @relation(fields:[applicationId],references:[id],onDelete:Restrict)
+  payments BillingPayment[]
+  @@unique([applicationId,requestId])
+  @@index([applicationId,createdAt])
+}
+model BillingPayment {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  subscriptionId String @db.Uuid
+  providerReference String @unique @db.VarChar(250)
+  merchantId String @db.VarChar(250)
+  currency String @db.Char(3)
+  totalMinor Int
+  sandbox Boolean
+  confirmedAt DateTime @db.Timestamptz(3)
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  order BillingOrder @relation(fields:[orderId],references:[id],onDelete:Restrict)
+  subscription CommercialSubscription @relation(fields:[subscriptionId],references:[id],onDelete:Restrict)
+}
+model BillingEvent {
+  id String @id @default(uuid()) @db.Uuid
+  fingerprint String @unique @db.Char(64)
+  providerReference String? @db.VarChar(250)
+  kind String @db.VarChar(80)
+  outcome String @db.VarChar(40)
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
+}
+model BillingRequest {
+  id String @id @default(uuid()) @db.Uuid
+  subscriptionId String @db.Uuid
+  requestId String @db.Uuid
+  kind String @db.VarChar(32)
+  requestedPlan CommercialPlan?
+  state String @default("REQUESTED") @db.VarChar(32)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  subscription CommercialSubscription @relation(fields:[subscriptionId],references:[id],onDelete:Restrict)
+  @@unique([subscriptionId,requestId])
 }

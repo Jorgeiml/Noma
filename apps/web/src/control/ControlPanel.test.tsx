@@ -71,6 +71,66 @@ beforeEach(() => {
     replayed: false,
   });
 });
+it("identifica solicitudes genéricas por correo y explica el paso posterior a la aprobación", async () => {
+  const first: Application = {
+    ...application,
+    user: {
+      ...application.user,
+      name: "Cuenta Noma",
+      emails: [{ email: "first@example.test", verified: true }],
+    },
+    platformReview: {
+      decision: "APPROVED",
+      version: 1,
+      reason: "Revisión autorizada",
+      decidedAt: new Date().toISOString(),
+    },
+  };
+  const second: Application = {
+    ...application,
+    id: "c5560632-af48-4d0a-8fb6-d56a8279d60c",
+    user: {
+      ...application.user,
+      id: "second-user",
+      name: "Cuenta Noma",
+      emails: [{ email: "second@example.test", verified: true }],
+    },
+  };
+  vi.mocked(controlApi.list).mockResolvedValue({
+    items: [first, second],
+    total: 2,
+    page: 1,
+    size: 25,
+  });
+  vi.mocked(controlApi.application).mockResolvedValue(first);
+  render(<ControlPanel />);
+  expect(
+    await screen.findByRole("button", {
+      name: "first@example.test",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "second@example.test" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "first@example.test" }));
+  expect(
+    await screen.findByRole("heading", {
+      name: "first@example.test",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Solicitud aprobada. Falta habilitar el acceso."),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Correo verificado")).toBeInTheDocument();
+  fireEvent.change(
+    screen.getByLabelText("Operación sobre first@example.test"),
+    { target: { value: "ACTIVATE" } },
+  );
+  expect(screen.getByText("Cuenta afectada:")).toHaveTextContent(
+    "first@example.test",
+  );
+  expect(controlApi.write).not.toHaveBeenCalled();
+});
 it("muestra loading antes de resolver permisos sin solicitar datos internos", () => {
   vi.mocked(controlApi.context).mockReturnValue(new Promise(() => {}));
   render(<ControlPanel />);
@@ -118,9 +178,12 @@ it("ofrece navegación etiquetada, estado vacío y búsqueda paginada en servido
     "aria-current",
     "page",
   );
-  fireEvent.change(screen.getByLabelText("Buscar por inicio del nombre o ID"), {
-    target: { value: "Noma" },
-  });
+  fireEvent.change(
+    screen.getByLabelText("Buscar por nombre, correo verificado o ID"),
+    {
+      target: { value: "Noma" },
+    },
+  );
   fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
   await waitFor(() =>
     expect(controlApi.list).toHaveBeenLastCalledWith(
@@ -220,7 +283,9 @@ it("un piloto requiere vencimiento y separa el alta futura de un negocio existen
     screen.getByRole("option", { name: /Sin negocio asociado/ }),
   ).toBeInTheDocument();
   expect(
-    screen.getByText(/el onboarding aún no está implementado/),
+    screen.getByText(
+      /permite crear un único negocio mediante la preparación guiada/,
+    ),
   ).toBeInTheDocument();
 });
 it("no permite que el propietario modifique su propio rol desde React", () => {

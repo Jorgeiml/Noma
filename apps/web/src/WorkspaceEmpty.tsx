@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Nomi, type NomiMood } from "./public/Nomi";
+import type { NomiMood } from "./public/Nomi";
+import { ContextualNomi } from "./identity/Identity";
 export function WorkspaceEmpty({
   title,
   children,
@@ -11,7 +12,7 @@ export function WorkspaceEmpty({
 }) {
   return (
     <div className="os-empty">
-      <Nomi mood={mood} />
+      <ContextualNomi mood={mood} />
       <div>
         <p className="eyebrow">Un espacio para hacerlo tuyo</p>
         <h2>{title}</h2>

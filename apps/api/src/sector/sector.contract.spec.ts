@@ -32,7 +32,9 @@ describe("Appointments: registro y contratos sectoriales", () => {
       ).toBe(true);
       expect(config.terminology.professionals).toBeTruthy();
       expect(config.commerciallyAvailable).toBe(false);
-      expect(config.capabilities.individualBookings).toBe("PLANNED");
+      expect(config.capabilities.individualBookings).toBe(
+        code === "BEAUTY" ? "IMPLEMENTED" : "PLANNED",
+      );
     },
   );
   it("distingue evidencia de código existente de reservas o valoraciones futuras", () => {

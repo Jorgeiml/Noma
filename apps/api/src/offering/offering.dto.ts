@@ -12,6 +12,7 @@ export const priceModes = [
   "ASSESSMENT_REQUIRED",
 ] as const;
 export class OfferingDto {
+  bookingMode?: "PROFESSIONAL" | "RESOURCE_ONLY";
   name!: string;
   category!: string | null;
   description!: string;
@@ -66,6 +67,7 @@ export function validateOffering(
     "priceMax",
     "hasPriorAssessment",
     "assessmentDescription",
+    "bookingMode",
     ...(update ? ["version"] : []),
   ]);
   const text = (key: string, max: number, required = false): string | null => {
@@ -137,6 +139,9 @@ export function validateOffering(
       "La descripción de evaluación debe coincidir con su configuración",
     );
   const result: OfferingDto = {
+    ...(input.bookingMode === undefined
+      ? {}
+      : { bookingMode: input.bookingMode as "PROFESSIONAL" | "RESOURCE_ONLY" }),
     name,
     category,
     description: description.trim(),
@@ -147,6 +152,13 @@ export function validateOffering(
     hasPriorAssessment,
     assessmentDescription,
   };
+  if (
+    input.bookingMode !== undefined &&
+    !["PROFESSIONAL", "RESOURCE_ONLY"].includes(input.bookingMode as string)
+  )
+    fail(
+      "Indica si el servicio necesita un profesional o solo un espacio o equipo.",
+    );
   return update
     ? { ...result, version: validateVersion(input.version) }
     : result;

@@ -28,7 +28,7 @@ it("migra los marcadores antiguos hacia el área correspondiente con aviso", () 
   );
   expect(resolveRoute("/", "#operacion").redirect).toBe("/app/equipo?legacy=1");
   expect(resolveRoute("/design-lab.html").redirect).toContain("legacy=1");
-  expect(resolveRoute("/app").redirect).toBe(APP_PATHS.establishment);
+  expect(resolveRoute("/app").redirect).toBe(APP_PATHS.agenda);
   expect(resolveRoute("/", "#sectores").kind).toBe("landing");
 });
 it.each([

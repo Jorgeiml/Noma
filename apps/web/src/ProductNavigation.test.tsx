@@ -12,7 +12,7 @@ it("identifica el espacio actual y permite cambiar con controles nativos", () =>
   expect(select).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Equipo" }));
   expect(select).toHaveBeenCalledWith("operations");
-  expect(screen.getAllByRole("button")).toHaveLength(3);
+  expect(screen.getAllByRole("button")).toHaveLength(4);
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });
 it("bloquea los botones y atajos al guardar", () => {
@@ -47,7 +47,7 @@ it("permite Alt+1/2/3 sin interceptar los campos de edición", () => {
       <input aria-label="Edición" />
     </>,
   );
-  fireEvent.keyDown(window, { key: "3", altKey: true });
+  fireEvent.keyDown(window, { key: "4", altKey: true });
   expect(select).toHaveBeenLastCalledWith("operations");
   select.mockClear();
   fireEvent.keyDown(screen.getByLabelText("Edición"), {
@@ -57,7 +57,7 @@ it("permite Alt+1/2/3 sin interceptar los campos de edición", () => {
   expect(select).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Servicios" })).toHaveAttribute(
     "aria-keyshortcuts",
-    "Alt+2",
+    "Alt+3",
   );
 });
 

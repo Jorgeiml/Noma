@@ -7,7 +7,9 @@ import {
 } from "@nestjs/common";
 import { createHash } from "node:crypto";
 import { Prisma } from "../generated/prisma/client";
+import type { freeAccessOf, freeChangeOf } from "./free-access.dto";
 import { PrismaService } from "../persistence/prisma.service";
+import { limitsFor } from "../commercial/business-authorization";
 import type { ControlPermission } from "./control.contract";
 import {
   assertPermission,
@@ -26,6 +28,301 @@ type Change = { before: Prisma.InputJsonValue; after: Prisma.InputJsonValue };
 @Injectable()
 export class ControlOperations {
   constructor(private readonly prisma: PrismaService) {}
+  freeAccess(
+    principal: ControlPrincipal,
+    userId: string,
+    input: ReturnType<typeof freeAccessOf>,
+  ) {
+    return this.write(
+      principal,
+      "subscriptions.manage",
+      "freeAccess.granted",
+      "user",
+      userId,
+      input,
+      async (tx) => {
+        if (userId === principal.userId)
+          throw new ForbiddenException(
+            "Otro operador debe autorizar el acceso gratuito de tu propia cuenta.",
+          );
+        const user = await tx.internalUser.findUnique({
+          where: { id: userId },
+          include: {
+            externalIdentities: {
+              select: { verifiedAt: true, synthetic: true },
+            },
+            commercialApplication: {
+              include: {
+                subscription: true,
+                manualActivation: true,
+                onboarding: true,
+              },
+            },
+          },
+        });
+        if (
+          !user ||
+          !user.externalIdentities.some(
+            (x) => x.verifiedAt && (!x.synthetic || principal.localDevelopment),
+          )
+        )
+          throw new ConflictException(
+            "Selecciona una cuenta registrada con correo verificado.",
+          );
+        const app = user.commercialApplication;
+        if (!app)
+          throw new ConflictException(
+            "La cuenta no tiene un registro comercial.",
+          );
+        if (app.subscription && app.subscription.state !== "ACTIVATION_PENDING")
+          throw new ConflictException(
+            "La cuenta tiene una relación comercial vigente o histórica. No se reemplaza una suscripción pagada por acceso gratuito.",
+          );
+        if (app.manualActivation)
+          throw new ConflictException(
+            "Ya existe un acceso gratuito. Utiliza sus acciones para extenderlo o cambiar su estado.",
+          );
+        const startsAt = input.startsAt ?? new Date();
+        const days =
+          (input.expiresAt.getTime() - startsAt.getTime()) / 86400000;
+        if (
+          startsAt.getTime() < Date.now() - 300000 ||
+          startsAt.getTime() > Date.now() + 90 * 86400000 ||
+          days <= 0 ||
+          days > { TEST: 90, PILOT: 180, COURTESY: 366 }[input.mode]
+        )
+          throw new BadRequestException(
+            "Revisa inicio y vencimiento: prueba hasta 90 días, piloto hasta 180, cortesía hasta 366.",
+          );
+        if (days > 90) {
+          const access = await tx.platformAccess.findUnique({
+            where: { userId: principal.userId },
+          });
+          if (access?.role !== "PLATFORM_OWNER")
+            throw new ForbiddenException(
+              "Solo el propietario de plataforma puede conceder más de 90 días.",
+            );
+        }
+        const memberships = await tx.membership.findMany({
+          where: {
+            userId,
+            status: "ACTIVE",
+            role: "OWNER",
+            establishment: { status: "ACTIVE" },
+          },
+          select: { id: true, establishmentId: true },
+        });
+        if (memberships.length && !input.membershipId)
+          throw new ConflictException(
+            "Selecciona explícitamente el negocio existente para evitar duplicados.",
+          );
+        const member = input.membershipId
+          ? memberships.find((m) => m.id === input.membershipId)
+          : null;
+        if (input.membershipId && !member)
+          throw new NotFoundException(
+            "Membresía propia y activa no disponible.",
+          );
+        if (
+          member &&
+          (await tx.commercialSubscription.findFirst({
+            where: {
+              establishmentId: member.establishmentId,
+              state: { not: "ACTIVATION_PENDING" },
+            },
+          }))
+        )
+          throw new ConflictException(
+            "El negocio ya tiene otra relación comercial.",
+          );
+        if (
+          app.onboarding?.establishmentId &&
+          member?.establishmentId !== app.onboarding.establishmentId
+        )
+          throw new ConflictException(
+            "La preparación ya pertenece a otro negocio.",
+          );
+        const limits = input.limits;
+        if (member) {
+          if (
+            app.subscription?.establishmentId &&
+            app.subscription.establishmentId !== member.establishmentId
+          )
+            throw new ConflictException(
+              "La solicitud ya pertenece a otro negocio.",
+            );
+          const allowed = limitsFor(
+            input.plan,
+            limits
+              ? {
+                  branchLimit: limits.branches,
+                  professionalLimit: limits.professionals,
+                  userLimit: limits.users,
+                }
+              : undefined,
+          );
+          const [branches, people, users] = await Promise.all([
+            tx.branch.count({
+              where: { establishmentId: member.establishmentId },
+            }),
+            tx.professional.count({
+              where: { establishmentId: member.establishmentId },
+            }),
+            tx.membership.count({
+              where: {
+                establishmentId: member.establishmentId,
+                status: "ACTIVE",
+              },
+            }),
+          ]);
+          if (
+            branches > allowed.branches ||
+            people > allowed.professionals ||
+            users > allowed.users
+          )
+            throw new ConflictException(
+              "El negocio supera los límites del plan elegido. Concede un plan o límites suficientes.",
+            );
+        }
+        const grant = await tx.manualActivation.create({
+          data: {
+            applicationId: app.id,
+            plan: input.plan,
+            mode: input.mode,
+            authorizationBasis: "DIRECT_GRANT",
+            startsAt,
+            expiresAt: input.expiresAt,
+            membershipId: input.membershipId,
+            actorUserId: principal.userId,
+            reason: input.reason,
+            ...(limits
+              ? {
+                  branchLimit: limits.branches,
+                  professionalLimit: limits.professionals,
+                  userLimit: limits.users,
+                  whatsappLimit: limits.whatsapp,
+                  aiSessionLimit: limits.aiSessions,
+                }
+              : {}),
+          },
+        });
+        return {
+          before: { manualActivation: null },
+          after: {
+            id: grant.id,
+            source: "MANUAL",
+            mode: grant.mode,
+            plan: grant.plan,
+            startsAt: grant.startsAt.toISOString(),
+            expiresAt: grant.expiresAt.toISOString(),
+            limits: limits ?? null,
+            paymentCreated: false,
+            revenueCreated: false,
+          },
+        };
+      },
+    );
+  }
+  freeChange(
+    principal: ControlPrincipal,
+    userId: string,
+    input: ReturnType<typeof freeChangeOf>,
+  ) {
+    return this.write(
+      principal,
+      "subscriptions.manage",
+      "freeAccess." + input.action.toLowerCase(),
+      "user",
+      userId,
+      input,
+      async (tx) => {
+        if (userId === principal.userId)
+          throw new ForbiddenException(
+            "Otro operador debe cambiar tu propio acceso gratuito.",
+          );
+        const grant = await tx.manualActivation.findFirst({
+          where: { application: { userId } },
+          include: { application: { include: { subscription: true } } },
+        });
+        if (!grant)
+          throw new NotFoundException("Acceso gratuito no disponible.");
+        if (grant.version !== input.version)
+          throw new ConflictException(
+            "La autorización cambió. Recarga antes de continuar.",
+          );
+        if (
+          input.action !== "REVOKE" &&
+          grant.application.subscription &&
+          grant.application.subscription.state !== "ACTIVATION_PENDING"
+        )
+          throw new ConflictException(
+            "La relación comercial ya no admite cambiar el acceso gratuito.",
+          );
+        if (grant.state === "REVOKED")
+          throw new ConflictException(
+            "La autorización finalizada no se reactiva.",
+          );
+        if (input.action === "EXTEND") {
+          const end = input.expiresAt!;
+          if (
+            end <= grant.expiresAt ||
+            end <= new Date() ||
+            end.getTime() > Date.now() + 366 * 86400000
+          )
+            throw new BadRequestException(
+              "La extensión debe ampliar la vigencia, hasta 366 días desde hoy.",
+            );
+          if (end.getTime() > Date.now() + 90 * 86400000) {
+            const role = await tx.platformAccess.findUnique({
+              where: { userId: principal.userId },
+            });
+            if (role?.role !== "PLATFORM_OWNER")
+              throw new ForbiddenException(
+                "Solo el propietario puede extender más de 90 días.",
+              );
+          }
+        } else if (
+          (input.action === "SUSPEND" && grant.state !== "ACTIVE") ||
+          (input.action === "RESUME" &&
+            (grant.state !== "SUSPENDED" || grant.expiresAt <= new Date()))
+        )
+          throw new ConflictException(
+            "Transición no válida para el estado actual.",
+          );
+        const next = await tx.manualActivation.update({
+          where: { id: grant.id },
+          data: {
+            state:
+              input.action === "SUSPEND"
+                ? "SUSPENDED"
+                : input.action === "RESUME"
+                  ? "ACTIVE"
+                  : input.action === "REVOKE"
+                    ? "REVOKED"
+                    : grant.state,
+            expiresAt: input.expiresAt,
+            version: { increment: 1 },
+            reason: input.reason,
+            actorUserId: principal.userId,
+          },
+        });
+        return {
+          before: {
+            state: grant.state,
+            expiresAt: grant.expiresAt.toISOString(),
+          },
+          after: {
+            source: "MANUAL",
+            state: next.state,
+            mode: next.mode,
+            expiresAt: next.expiresAt.toISOString(),
+            paymentCreated: false,
+            revenueCreated: false,
+          },
+        };
+      },
+    );
+  }
   private async write(
     principal: ControlPrincipal,
     permission: ControlPermission,

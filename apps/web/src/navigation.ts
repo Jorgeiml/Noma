@@ -1,5 +1,6 @@
 import type { ProductArea } from "./ProductNavigation";
 export const APP_PATHS: Record<ProductArea, string> = {
+  agenda: "/app/agenda",
   establishment: "/app/establecimiento",
   services: "/app/servicios",
   operations: "/app/equipo",
@@ -57,8 +58,8 @@ export function resolveRoute(
   if (path === "/app" || path === "/app/")
     return {
       kind: "app",
-      area: "establishment",
-      redirect: APP_PATHS.establishment,
+      area: "agenda",
+      redirect: APP_PATHS.agenda,
     };
   const area = (Object.keys(APP_PATHS) as ProductArea[]).find(
     (key) => APP_PATHS[key] === path,

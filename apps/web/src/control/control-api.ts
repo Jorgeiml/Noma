@@ -20,6 +20,12 @@ export type Review = {
   decidedAt: string;
 };
 export type Pilot = {
+  authorizationBasis?: "DIRECT_GRANT" | "LEGACY_REVIEWED";
+  mode?: "TEST" | "PILOT" | "COURTESY";
+  startsAt?: string;
+  branchLimit?: number | null;
+  professionalLimit?: number | null;
+  userLimit?: number | null;
   id: string;
   plan: string;
   state: string;
@@ -36,11 +42,22 @@ export type Membership = {
   establishment: { id: string; commercialName: string; status: string };
 };
 export type Application = {
+  onboarding?: {
+    step: number;
+    createdAt: string;
+    completedAt: string | null;
+  } | null;
   id: string;
   state: string;
   selectedPlan: string | null;
   createdAt: string;
-  user: { id: string; name: string; verified: boolean; synthetic?: boolean };
+  user: {
+    id: string;
+    name: string;
+    verified: boolean;
+    synthetic?: boolean;
+    emails?: Array<{ email: string; verified: boolean }>;
+  };
   platformReview: Review | null;
   manualActivation: Pilot | null;
   subscription?: {
@@ -53,6 +70,11 @@ export type Application = {
   history?: Audit[];
 };
 export type Business = {
+  onboarding?: {
+    step: number;
+    createdAt: string;
+    completedAt: string | null;
+  } | null;
   id: string;
   commercialName: string;
   vertical: string | null;
@@ -80,6 +102,16 @@ export type Business = {
   _count?: { branches: number };
 };
 export type User = {
+  commercialApplication?: {
+    id: string;
+    selectedPlan: string | null;
+    manualActivation: Pilot | null;
+    subscription: {
+      state: string;
+      plan: string;
+      evidenceSource: string;
+    } | null;
+  } | null;
   id: string;
   displayName: string;
   createdAt: string;
@@ -98,6 +130,7 @@ export type User = {
   memberships: Membership[];
 };
 export type Subscription = {
+  mode?: "TEST" | "PILOT" | "COURTESY";
   id: string;
   kind: "manual" | "commercial";
   plan: string;
@@ -110,7 +143,13 @@ export type Subscription = {
   evidenceSource?: string;
   establishment?: { id: string; commercialName: string };
   membership?: { establishment: { id: string; commercialName: string } } | null;
-  application?: { user: { id: string; displayName: string } };
+  application?: {
+    user: {
+      id: string;
+      displayName: string;
+      externalIdentities?: Array<{ email: string; verifiedAt: string | null }>;
+    };
+  };
 };
 export type Audit = {
   id: string;

@@ -6,6 +6,7 @@ const Catalog = lazy(() =>
 const Operations = lazy(() =>
   import("./Operations").then((module) => ({ default: module.Operations })),
 );
+const Agenda = lazy(() => import("./appointments/Agenda"));
 import { ProductNavigation, type ProductArea } from "./ProductNavigation";
 import { StudioMark, StudioCompanion } from "./StudioBrand";
 import { AdminShell } from "./AdminShell";
@@ -55,6 +56,7 @@ export function Workspace({
       ? initialArea === "operations"
       : window.location.hash === "#operacion",
   );
+  const [agenda, setAgenda] = useState(initialArea === "agenda");
   const dirty = Boolean(
     draft && saved && JSON.stringify(draft) !== JSON.stringify(draftOf(saved)),
   );
@@ -70,6 +72,8 @@ export function Workspace({
   }, [routeMode, stage]);
   const availableAreas: ProductArea[] = ["establishment"];
   const capabilities = saved?.sectorConfiguration?.capabilities;
+  if (capabilities?.individualBookings === "IMPLEMENTED")
+    availableAreas.push("agenda");
   if (
     capabilities?.individualServices === "IMPLEMENTED" &&
     capabilities.flexiblePricing === "IMPLEMENTED"
@@ -289,6 +293,7 @@ export function Workspace({
     );
     setCatalog(area === "services");
     setOperations(area === "operations");
+    setAgenda(area === "agenda");
   }
 
   if (
@@ -302,6 +307,7 @@ export function Workspace({
     );
   return (
     <AdminShell
+      vertical={saved?.sectorConfiguration?.vertical}
       authorized={stage === "ready"}
       businessName={saved?.commercialName}
       businessLogo={saved?.logoDataUrl}
@@ -357,6 +363,7 @@ export function Workspace({
           )}
         {stage === "ready" &&
           !(
+            (agenda && availableAreas.includes("agenda")) ||
             (catalog && availableAreas.includes("services")) ||
             (operations && availableAreas.includes("operations"))
           ) && (
@@ -372,10 +379,29 @@ export function Workspace({
             {error}
           </p>
         )}
-        {operations &&
+        {agenda &&
         saved &&
-        availableAreas.includes("operations") &&
+        availableAreas.includes("agenda") &&
         stage === "ready" ? (
+          <main
+            id="workspace-content"
+            className="catalog-main view-enter"
+            tabIndex={-1}
+            key="agenda"
+          >
+            <Suspense fallback={<p role="status">Cargando Agenda…</p>}>
+              <Agenda
+                timeZone={saved.timeZone}
+                enabledAreas={availableAreas}
+                onNavigate={navigate}
+                onEditingChange={setChildEditing}
+              />
+            </Suspense>
+          </main>
+        ) : operations &&
+          saved &&
+          availableAreas.includes("operations") &&
+          stage === "ready" ? (
           <main
             id="workspace-content"
             className="catalog-main view-enter"

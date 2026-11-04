@@ -88,6 +88,7 @@ function capabilities(code: VerticalCode): Capabilities {
     "invoicing",
   ] as const)
     result[key] = "PLANNED";
+  if (code === "BEAUTY") result.individualBookings = "IMPLEMENTED";
   if (code === "FITNESS")
     for (const key of [
       "groupBookings",

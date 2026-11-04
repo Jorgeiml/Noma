@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../persistence/prisma.service";
 import type { OwnerContext } from "../platform/local.guard";
+import { businessAuthorization } from "../commercial/business-authorization";
 import {
   validateCurrencyPrecision,
   type OfferingDto,
@@ -40,7 +41,10 @@ export class OfferingService {
   }
   async remove(owner: OwnerContext, id: string, version: number) {
     return this.prisma.client.$transaction(async (tx) => {
+      if (owner.identityMode === "commercial")
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('noma-control-writes',0))`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${owner.establishmentId}, 0))`;
+      await businessAuthorization(tx, owner);
       const current = await tx.serviceOffering.findFirst({
         where: { id, ...this.scope(owner) },
       });
@@ -51,6 +55,14 @@ export class OfferingService {
       if (current.version !== version)
         throw new ConflictException(
           "El servicio cambió. Actualiza el catálogo antes de eliminarlo.",
+        );
+      if (
+        await tx.appointment.count({
+          where: { establishmentId: owner.establishmentId, serviceId: id },
+        })
+      )
+        throw new ConflictException(
+          "Este servicio tiene citas. Desactívalo para conservar su historial.",
         );
       const where = { establishmentId: owner.establishmentId, serviceId: id };
       await tx.professionalService.deleteMany({ where });
@@ -90,6 +102,19 @@ export class OfferingService {
         "La moneda del establecimiento cambió. Conservamos tu edición; vuelve al establecimiento para cargar su configuración actual.",
       );
     validateCurrencyPrecision(data, owner.currency);
+    if (owner.identityMode === "commercial")
+      return this.prisma.client.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('noma-control-writes',0))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${owner.establishmentId},0))`;
+        await businessAuthorization(tx, owner);
+        return tx.serviceOffering.create({
+          data: {
+            ...data,
+            currency: owner.currency,
+            establishmentId: owner.establishmentId,
+          },
+        });
+      });
     return this.prisma.client.serviceOffering.create({
       data: {
         ...data,
@@ -108,6 +133,11 @@ export class OfferingService {
       validateCurrencyPrecision(input, current.currency);
     const { version, ...data } = input;
     return this.prisma.client.$transaction(async (tx) => {
+      if (owner.identityMode === "commercial") {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('noma-control-writes',0))`;
+      }
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${owner.establishmentId},0))`;
+      await businessAuthorization(tx, owner);
       const result = await tx.serviceOffering.updateMany({
         where: { id, ...this.scope(owner), version },
         data: { ...data, version: { increment: 1 } },
