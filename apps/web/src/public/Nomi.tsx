@@ -12,11 +12,19 @@ export function Nomi({
   mood = "welcome",
   className = "",
   scene = null,
+  uniform = false,
 }: {
   mood?: NomiMood;
+  uniform?: boolean;
   scene?: "mirror" | "brush" | "weight" | "tool" | null;
   className?: string;
 }) {
+  const outfit = uniform && scene ? {
+    mirror: ["#263b41", "#dfab70"],
+    brush: ["#e8f8f4", "#36776e"],
+    weight: ["#693c72", "#f4b558"],
+    tool: ["#304f73", "#f5bd66"],
+  }[scene] : null;
   const id = useId().replaceAll(":", "");
   const ref = useRef<SVGSVGElement>(null);
   const [active, setActive] = useState(false);
@@ -168,6 +176,32 @@ export function Nomi({
           d="M303 302c-27-2-68 15-88 51-18 33-20 71 2 96 18 20 61 31 89 16 28-15 26-44 11-67-23-34-41-59-14-96Z"
           fill={`url(#${id}-belly)`}
         />
+        {outfit && (
+          <g className="nomi-uniform">
+            <path
+              d="M182 327q45 23 115 1c-5 24 17 43 37 66 24 26 10 65-26 76-43 12-92-2-129-20-30-15-44-46-43-83z"
+              fill={outfit[0]}
+            />
+            <path
+              d={scene === "mirror" || scene === "tool"
+                ? "M182 326l20 39h77l18-37M138 401q90 35 195-5"
+                : "M197 335l36 37 43-35"}
+              fill="none"
+              stroke={outfit[1]}
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <rect x="247" y="402" width="40" height="31" rx="7" fill={outfit[1]} />
+            <path
+              d="M257 412v11m0-9 9 7v-9m5 10v-10l7 7v-7"
+              fill="none"
+              stroke={outfit[0]}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </g>
+        )}
         <path
           d="M177 211c-1-37 16-54 38-53"
           stroke="#ffd8a5"

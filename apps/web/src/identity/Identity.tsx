@@ -43,7 +43,10 @@ export function IdentityIcon({ vertical }: { vertical?: string | null }) {
     </svg>
   );
 }
-export function ContextualNomi({ mood = "listening" }: { mood?: NomiMood }) {
+export function ContextualNomi({
+  mood = "listening",
+  uniform = false,
+}: { mood?: NomiMood; uniform?: boolean }) {
   const theme = usePersonality();
-  return <Nomi mood={mood} scene={theme.scene} />;
+  return <Nomi mood={mood} scene={theme.scene} uniform={uniform} />;
 }

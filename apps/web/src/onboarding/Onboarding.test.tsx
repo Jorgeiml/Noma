@@ -187,8 +187,10 @@ it("una bienvenida con piloto propone empezar sin inventar un pago", async () =>
 it("muestra los cuatro sectores, bloquea los tres pendientes y guarda Beauty", async () => {
   render(<Onboarding />);
   const dental = await screen.findByRole("button", { name: /Odontología/ });
-  expect(dental).toHaveAttribute("aria-disabled", "true");
+  expect(dental).toHaveAttribute("aria-pressed", "false");
   fireEvent.click(dental);
+  expect(dental).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("button", { name: /Continuar con belleza/ })).not.toBeInTheDocument();
   expect(
     screen.getByText(/Odontología está en desarrollo/),
   ).toBeInTheDocument();

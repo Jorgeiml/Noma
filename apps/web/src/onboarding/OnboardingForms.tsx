@@ -61,6 +61,7 @@ export function BusinessStep({ snapshot, busy, save }: Props) {
   } = value;
   return (
     <form
+      className="onboard-business-form"
       onSubmit={(e) => {
         e.preventDefault();
         void save("business", {
@@ -84,11 +85,12 @@ export function BusinessStep({ snapshot, busy, save }: Props) {
         required={!initial || !!snapshot.progress?.createdBusiness}
         onChange={(key, text) => setValue((v) => ({ ...v, [key]: text }))}
       />
-      <p className="onboard-note">
-        No necesitas RUC ni volver a introducir tu contraseña. El correo
-        comercial es un dato de contacto y no cambia tu identidad de acceso.
-      </p>
-      {saveButton(busy)}
+      <div className="onboard-business-actions">
+        <p className="onboard-note">
+          El correo comercial es de contacto. Seguirás entrando a Noma con tu cuenta actual.
+        </p>
+        {saveButton(busy)}
+      </div>
     </form>
   );
 }

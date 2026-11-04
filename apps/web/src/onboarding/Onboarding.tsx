@@ -27,7 +27,7 @@ import {
 } from "./OnboardingForms";
 import "./onboarding.css";
 const descriptions = [
-  "Un espacio de trabajo que entiende a qué te dedicas.",
+  "Elige el sector que mejor describe tu negocio.",
   "La identidad y los datos de contacto de tu negocio.",
   "Dale un lugar y un ritmo a tu operación.",
   "Lo que ofreces, con sus tiempos y precios claros.",
@@ -42,9 +42,9 @@ export default function Onboarding() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [dirty, setDirty] = useState(false),
-    [sector, setSector] = useState(""),
-    [sectorHelp, setSectorHelp] = useState(""),
-    [preview, setPreview] = useState<string | null>(null),
+    [preview, setPreview] = useState<(typeof ONBOARDING_SECTORS)[number]>(
+      ONBOARDING_SECTORS[0],
+    ),
     [membership, setMembership] = useState("");
   const pending = useRef<{ fingerprint: string; requestId: string } | null>(
       null,
@@ -209,29 +209,30 @@ export default function Onboarding() {
                     (!snapshot.progress?.selectedVertical && index > 0) ||
                     (!snapshot.configuration && index > 1)
                   }
+                  data-complete={index < firstMissing && index !== step}
                   aria-current={step === index ? "step" : undefined}
                   aria-label={`Paso ${index + 1}: ${label}`}
+                  aria-description={index < firstMissing && index !== step ? "Completado" : undefined}
                   onClick={() => {
                     if (index !== step && discard())
                       void mutate("step", { step: index });
                   }}
                 >
-                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <span className="onboard-step-marker" aria-hidden="true">
+                    {index < firstMissing && index !== step
+                      ? "✓"
+                      : String(index + 1).padStart(2, "0")}
+                  </span>
                   <strong>{label}</strong>
                 </button>
               </li>
             ))}
           </ol>
-          <div className="onboard-progress-track" aria-hidden="true">
-            <i
-              style={{ transform: `scaleX(${(Math.min(step, 5) + 1) / 6})` }}
-            />
-          </div>
         </nav>
       )}
       <main
         id="onboard-content"
-        className="onboard-content"
+        className={`onboard-content${editable ? " onboard-content--workspace" : ""}`}
         aria-busy={busy || loading}
       >
         {loading ? (
@@ -386,81 +387,52 @@ export default function Onboarding() {
                   onChangeCapture={() => setDirty(true)}
                 >
                   {step === 0 && (
-                    <>
-                      <IdentityScope vertical={preview ?? (sector || "BEAUTY")}>
-                        <div className="identity-intro">
-                          <div>
-                            <strong>
-                              {
-                                personality(preview ?? (sector || "BEAUTY"))
-                                  .label
-                              }
-                            </strong>
-                            <p>
-                              {
-                                personality(preview ?? (sector || "BEAUTY"))
-                                  .copy
-                              }
-                            </p>
-                          </div>
-                          <ContextualNomi />
-                        </div>
-                      </IdentityScope>
-                      <div className="onboard-sectors">
+                    <div className="onboard-sector-layout">
+                      <div className="onboard-sectors" role="group" aria-label="Explorar sectores">
                         {ONBOARDING_SECTORS.map((item) => (
                           <button
                             key={item.id}
                             type="button"
                             className="onboard-sector"
-                            data-personality={personality(item.id).label}
                             style={identityTokens(personality(item.id))}
-                            aria-pressed={sector === item.id}
-                            aria-disabled={!item.available}
-                            disabled={busy}
-                            onClick={() => {
-                              setPreview(item.id);
-                              if (item.available) {
-                                setSector(item.id);
-                                setDirty(true);
-                                setSectorHelp("");
-                              } else
-                                setSectorHelp(
-                                  `${item.name} está en desarrollo. Su configuración operativa aún no está habilitada.`,
-                                );
-                            }}
+                            aria-pressed={preview.id === item.id}
+                            onClick={() => setPreview(item)}
                           >
-                            <span
-                              className="onboard-sector-symbol"
-                              aria-hidden="true"
-                            >
+                            <span className="onboard-sector-symbol">
                               <IdentityIcon vertical={item.id} />
                             </span>
-                            <strong>{item.name}</strong>
-                            <p>{item.description}</p>
-                            <p>{personality(item.id).copy}</p>
-                            <small>
-                              {item.available
-                                ? "Disponible para preparar tu espacio"
-                                : "En desarrollo"}
-                            </small>
+                            <span className="onboard-sector-name">
+                              <strong>{item.name}</strong>
+                              <span>{item.description}</span>
+                            </span>
+                            <small>{item.available ? "Disponible" : "Próximamente"}</small>
                           </button>
                         ))}
                       </div>
-                      {sectorHelp && (
-                        <p role="status" className="onboard-note">
-                          {sectorHelp}
-                        </p>
-                      )}
-                      <button
-                        className="onboard-primary"
-                        disabled={busy || sector !== "BEAUTY"}
-                        onClick={() =>
-                          void mutate("sector", { vertical: sector })
-                        }
-                      >
-                        Continuar con belleza y bienestar ↗
-                      </button>
-                    </>
+                      <IdentityScope vertical={preview.id} className="onboard-sector-scene">
+                        <div className="onboard-sector-art">
+                          <span aria-hidden="true">NOMI / EN EL NEGOCIO</span>
+                          <ContextualNomi key={preview.id} uniform />
+                        </div>
+                        <div className="onboard-sector-caption" aria-live="polite">
+                          <h2>{preview.name}</h2>
+                          <p>{personality(preview.id).copy}</p>
+                        </div>
+                      </IdentityScope>
+                      <div className="onboard-sector-action">
+                        {preview.available ? (
+                          <button
+                            className="onboard-primary"
+                            disabled={busy}
+                            onClick={() => void mutate("sector", { vertical: preview.id })}
+                          >
+                            Continuar con belleza y bienestar <span aria-hidden="true">↗</span>
+                          </button>
+                        ) : (
+                          <p role="status">{preview.name} está en desarrollo.</p>
+                        )}
+                      </div>
+                    </div>
                   )}
                   {step === 1 && (
                     <BusinessStep
